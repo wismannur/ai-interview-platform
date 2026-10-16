@@ -104,7 +104,10 @@ module FitGap
         { culture: data['culture_narrative'], overall: data['overall_narrative'] }
       rescue => e
         Rails.logger.error("[N13] Narrative generation failed: #{e.message}")
-        { culture: nil, overall: generate_fallback_narrative(skill_comparisons) }
+        {
+          culture: generate_fallback_culture_narrative(skill_comparisons),
+          overall: generate_fallback_narrative(skill_comparisons)
+        }
       end
     end
 
@@ -138,12 +141,28 @@ module FitGap
       PROMPT
     end
 
-    def generate_fallback_narrative(comparisons)
-      gaps    = comparisons.count { |c| c[:result] == 'gap' }
-      matches = comparisons.count { |c| c[:result] == 'match' }
-      exceeds = comparisons.count { |c| c[:result] == 'exceed' }
+    def generate_fallback_culture_narrative(comparisons)
+      gaps = comparisons.select { |c| c[:result] == 'gap' }
+      matches = comparisons.select { |c| c[:result] == 'match' }
+      exceeds = comparisons.select { |c| c[:result] == 'exceed' }
 
-      "Candidate shows #{matches} skill matches, #{exceeds} exceeds, and #{gaps} gaps against role requirements."
+      if gaps.empty?
+        "Candidate demonstrates strong competency alignment across evaluated benchmarks for this role with #{matches.count} requirements met and #{exceeds.count} exceeded."
+      else
+        gap_names = gaps.map { |g| g[:skill_label] }.join(', ')
+        "Candidate aligns with several role requirements but presents measurable gaps in: #{gap_names}. Further interview probing is recommended."
+      end
+    end
+
+    def generate_fallback_narrative(comparisons)
+      gaps         = comparisons.count { |c| c[:result] == 'gap' }
+      matches      = comparisons.count { |c| c[:result] == 'match' }
+      exceeds      = comparisons.count { |c| c[:result] == 'exceed' }
+      not_assessed = comparisons.count { |c| c[:result] == 'not_assessed' }
+
+      summary = "Candidate evaluation: #{matches} skill matches, #{exceeds} exceeds, and #{gaps} gaps against #{@vacancy.role_title} requirements."
+      summary += " (#{not_assessed} skills were not assessed during the interview session)." if not_assessed > 0
+      summary
     end
   end
 end
