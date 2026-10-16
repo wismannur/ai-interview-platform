@@ -4,8 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { assessmentsApi } from "@/services/assessments";
-import { Plus, Clock, ChevronRight } from "lucide-react";
-import type { Assessment } from "@/types";
+import { Plus, Clock, ChevronRight, ChevronLeft, Trash2, Edit2, AlertCircle } from "lucide-react";
+import type { Assessment, PaginationMeta } from "@/types";
 
 function SessionSummary({ session }: { session?: Assessment["latest_session"] }) {
   if (!session) return null;
@@ -29,17 +29,49 @@ function SessionSummary({ session }: { session?: Assessment["latest_session"] })
 
 export default function AssessmentListPage() {
   const [assessments, setAssessments] = useState<Assessment[]>([]);
+  const [meta, setMeta] = useState<PaginationMeta | null>(null);
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [deletingId, setDeletingId] = useState<number | null>(null);
   const navigate = useNavigate();
 
-  useEffect(() => {
+  const fetchAssessments = (pageToFetch: number) => {
+    setLoading(true);
+    setError(null);
     assessmentsApi
-      .list()
-      .then((res) => setAssessments(res.data.assessments))
-      .catch(() => setError(true))
+      .list(pageToFetch)
+      .then((res) => {
+        setAssessments(res.data.assessments || []);
+        if (res.data.meta) {
+          setMeta(res.data.meta);
+        }
+      })
+      .catch(() => setError("Failed to load assessments. Please refresh the page."))
       .finally(() => setLoading(false));
-  }, []);
+  };
+
+  useEffect(() => {
+    fetchAssessments(page);
+  }, [page]);
+
+  const handleDelete = async (e: React.MouseEvent, id: number) => {
+    e.stopPropagation();
+    if (!window.confirm("Are you sure you want to delete this assessment?")) return;
+
+    setDeletingId(id);
+    try {
+      await assessmentsApi.delete(id);
+      fetchAssessments(page);
+    } catch (err: any) {
+      const errorMessage =
+        err.response?.data?.error ||
+        "Cannot delete this assessment because candidates have interview sessions recorded.";
+      setError(errorMessage);
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
   return (
     <div className="space-y-4">
@@ -51,14 +83,22 @@ export default function AssessmentListPage() {
       </div>
 
       {error && (
-        <div className="border border-destructive/40 rounded-lg p-4 text-sm text-destructive">
-          Failed to load assessments. Please refresh the page.
+        <div className="border border-destructive/40 bg-destructive/10 rounded-lg p-3 text-sm text-destructive flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <AlertCircle className="h-4 w-4 shrink-0" />
+            <span>{error}</span>
+          </div>
+          <Button variant="ghost" size="sm" onClick={() => setError(null)}>
+            Dismiss
+          </Button>
         </div>
       )}
 
       {loading ? (
         <div className="space-y-2">
-          {[1, 2, 3].map((i) => <Skeleton key={i} className="h-16 w-full" />)}
+          {[1, 2, 3].map((i) => (
+            <Skeleton key={i} className="h-16 w-full" />
+          ))}
         </div>
       ) : assessments.length === 0 ? (
         <div className="border rounded-lg p-12 text-center text-sm text-muted-foreground">
@@ -91,10 +131,61 @@ export default function AssessmentListPage() {
                     )}
                   </div>
                 </div>
-                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                <div className="flex items-center gap-1">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title="Edit Assessment"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/assessments/${a.id}/edit`);
+                    }}
+                  >
+                    <Edit2 className="h-3.5 w-3.5 text-muted-foreground hover:text-foreground" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-8 w-8 p-0"
+                    title="Delete Assessment"
+                    disabled={deletingId === a.id}
+                    onClick={(e) => handleDelete(e, a.id)}
+                  >
+                    <Trash2 className="h-3.5 w-3.5 text-destructive/70 hover:text-destructive" />
+                  </Button>
+                  <ChevronRight className="h-4 w-4 text-muted-foreground ml-1" />
+                </div>
               </CardContent>
             </Card>
           ))}
+        </div>
+      )}
+
+      {/* Pagination Controls */}
+      {meta && meta.total_pages > 1 && (
+        <div className="flex items-center justify-between pt-2 border-t text-sm text-muted-foreground">
+          <div>
+            Showing Page {meta.current_page} of {meta.total_pages} ({meta.total_count} total)
+          </div>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page <= 1}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              <ChevronLeft className="h-4 w-4 mr-1" /> Previous
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={meta.current_page >= meta.total_pages}
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next <ChevronRight className="h-4 w-4 ml-1" />
+            </Button>
+          </div>
         </div>
       )}
     </div>

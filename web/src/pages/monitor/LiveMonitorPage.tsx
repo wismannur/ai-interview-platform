@@ -55,6 +55,7 @@ export default function LiveMonitorPage() {
   const [startedAt, setStartedAt] = useState<string | null>(null);
   const [assessmentName, setAssessmentName] = useState<string>("");
   const [transcript, setTranscript] = useState<TranscriptTurn[]>([]);
+  const [viewMode, setViewMode] = useState<"recent" | "all">("recent");
   const [loading, setLoading] = useState(true);
   const [ending, setEnding] = useState(false);
   const [endError, setEndError] = useState(false);
@@ -86,7 +87,7 @@ export default function LiveMonitorPage() {
         if (s.status !== "active") setSessionActive(false);
 
         const turns = tRes.data.turns;
-        setTranscript(turns.slice(-10));
+        setTranscript(turns);
         if (turns.length > 0) {
           lastTurnRef.current = turns[turns.length - 1].turn_number;
         }
@@ -102,7 +103,7 @@ export default function LiveMonitorPage() {
         lastTurnRef.current + 1
       );
       if (res.data.turns.length > 0) {
-        setTranscript((prev) => [...prev, ...res.data.turns].slice(-10));
+        setTranscript((prev) => [...prev, ...res.data.turns]);
         lastTurnRef.current = res.data.turns[res.data.turns.length - 1].turn_number;
       }
     } catch {
@@ -267,15 +268,35 @@ export default function LiveMonitorPage() {
 
       {/* Live transcript */}
       <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-sm">Live Transcript</CardTitle>
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-sm">Live Transcript ({transcript.length} turns)</CardTitle>
+          <div className="flex items-center gap-1 border rounded-md p-0.5 bg-muted/40">
+            <Button
+              type="button"
+              variant={viewMode === "recent" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => setViewMode("recent")}
+            >
+              Recent (10)
+            </Button>
+            <Button
+              type="button"
+              variant={viewMode === "all" ? "secondary" : "ghost"}
+              size="sm"
+              className="h-6 px-2 text-xs"
+              onClick={() => setViewMode("all")}
+            >
+              Full Transcript
+            </Button>
+          </div>
         </CardHeader>
         <CardContent>
           {transcript.length === 0 ? (
             <p className="text-sm text-muted-foreground">No transcript yet.</p>
           ) : (
-            <div className="space-y-2">
-              {transcript.map((turn) => (
+            <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
+              {(viewMode === "recent" ? transcript.slice(-10) : transcript).map((turn) => (
                 <TranscriptBubble key={turn.id} speaker={turn.speaker} text={turn.text} />
               ))}
             </div>

@@ -21,7 +21,8 @@ import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 import { useAudioWebSocket } from "@/hooks/useAudioWebSocket";
 import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
-import { CheckCircle, Mic, MicOff } from "lucide-react";
+import PrivacyConsentModal from "@/components/interview/PrivacyConsentModal";
+import { CheckCircle, Mic, MicOff, ShieldCheck } from "lucide-react";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
 export default function InterviewPage() {
@@ -32,6 +33,7 @@ export default function InterviewPage() {
   const [speaker, setSpeaker] = useState<InterviewSpeaker>(null);
   const [transcript, setTranscript] = useState<Pick<TranscriptTurn, "speaker" | "text">[]>([]);
   const [hardwareCheckDone, setHardwareCheckDone] = useState(false); // kept for green banner
+  const [consentGiven, setConsentGiven] = useState(false);
   const [connectionLostLong, setConnectionLostLong] = useState(false);
   const [reconnectedPrompt, setReconnectedPrompt] = useState(false);
   const reconnectedPromptTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -200,6 +202,19 @@ export default function InterviewPage() {
           )}
         </div>
 
+        <PrivacyConsentModal
+          open={!consentGiven}
+          onConsentAccepted={() => setConsentGiven(true)}
+          roleTitle={candidateInfo?.role_title}
+        />
+
+        {consentGiven && (
+          <div className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-lg px-3.5 py-2">
+            <ShieldCheck className="h-4 w-4 text-emerald-600 shrink-0" />
+            <span>Persetujuan pemrosesan data audio &amp; evaluasi AI sesuai ketentuan UU PDP telah terverifikasi.</span>
+          </div>
+        )}
+
         {!hardwareCheckDone ? (
           <div className="space-y-4">
             <div className="bg-muted/50 rounded-lg p-4 text-sm space-y-1.5 text-muted-foreground">
@@ -208,7 +223,13 @@ export default function InterviewPage() {
               <p>• The session will last up to {candidateInfo?.time_limit_min ?? "—"} minutes.</p>
               <p>• Your mic will be active throughout. You can end anytime.</p>
             </div>
-            <HardwareCheck onStart={() => { setHardwareCheckDone(true); startInterview(); }} />
+            {consentGiven ? (
+              <HardwareCheck onStart={() => { setHardwareCheckDone(true); startInterview(); }} />
+            ) : (
+              <Button className="w-full" size="lg" onClick={() => setConsentGiven(false)}>
+                Tinjau Ketentuan UU PDP untuk Memulai
+              </Button>
+            )}
           </div>
         ) : (
           <div className="space-y-4">
