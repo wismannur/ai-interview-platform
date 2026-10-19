@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import ComparisonTable from "@/components/fitgap/ComparisonTable";
+import SkillRadarChart from "@/components/fitgap/SkillRadarChart";
 import { portfoliosApi } from "@/services/portfolios";
 import { sessionsApi } from "@/services/sessions";
 import { usePolling } from "@/hooks/usePolling";
@@ -151,10 +152,15 @@ export default function FitGapReportPage() {
       {/* Report ready */}
       {report && (
         <>
-          {/* Skill comparison */}
+          {/* Visual Interactive Competency Radar Map */}
+          {report.skill_comparisons && report.skill_comparisons.length > 0 && (
+            <SkillRadarChart comparisons={report.skill_comparisons} />
+          )}
+
+          {/* Skill comparison table */}
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle className="text-sm">Skill Comparison</CardTitle>
+              <CardTitle className="text-sm">Tabulasi Skor &amp; Bukti Evaluasi</CardTitle>
             </CardHeader>
             <CardContent className="px-4 pb-4">
               <ComparisonTable comparisons={report.skill_comparisons} />

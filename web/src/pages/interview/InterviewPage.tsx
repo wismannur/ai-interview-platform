@@ -13,6 +13,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import VoiceBars from "@/components/interview/VoiceBars";
+import AiLiveOrb from "@/components/interview/AiLiveOrb";
 import InterviewTimer from "@/components/interview/InterviewTimer";
 import ConnectionStatus from "@/components/interview/ConnectionStatus";
 import TranscriptBubble from "@/components/interview/TranscriptBubble";
@@ -303,40 +304,17 @@ export default function InterviewPage() {
         </div>
       )}
 
-      {/* Voice indicator */}
-      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-8">
-        {interviewState === "connecting" ? (
-          <div className="text-sm text-muted-foreground animate-pulse">Connecting...</div>
-        ) : interviewState === "draining_audio" ? (
-          <div className="flex flex-col items-center gap-2 text-center">
-            <VoiceBars active={true} label="AI speaking" variant="ai" />
-            <p className="text-xs text-muted-foreground">Wrapping up...</p>
+      {/* Voice indicator with interactive AI Live Orb */}
+      <div className="flex-1 flex flex-col items-center justify-center gap-6 py-6">
+        <AiLiveOrb speaker={speaker} state={interviewState} />
+
+        {/* Live Transcript Stream */}
+        {transcript.length > 0 && (
+          <div className="w-full space-y-2 overflow-y-auto max-h-[50vh] p-1">
+            {transcript.map((turn, i) => (
+              <TranscriptBubble key={i} speaker={turn.speaker} text={turn.text} />
+            ))}
           </div>
-        ) : (
-          <>
-            <VoiceBars
-              active={aiSpeaking}
-              label={aiSpeaking ? "AI speaking" : "Listening..."}
-              variant="ai"
-            />
-
-            {candidateSpeaking && (
-              <VoiceBars
-                active={true}
-                label="You're speaking"
-                variant="candidate"
-              />
-            )}
-
-            {/* Transcript */}
-            {transcript.length > 0 && (
-              <div className="w-full space-y-2 overflow-y-auto max-h-[60vh]">
-                {transcript.map((turn, i) => (
-                  <TranscriptBubble key={i} speaker={turn.speaker} text={turn.text} />
-                ))}
-              </div>
-            )}
-          </>
         )}
       </div>
 

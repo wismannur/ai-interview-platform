@@ -7,6 +7,8 @@ import { LayoutDashboard, ClipboardList, Briefcase, LogOut } from "lucide-react"
 import { cn } from "@/lib/utils";
 import { useLocation } from "react-router-dom";
 
+import BrandLogo from "@/components/BrandLogo";
+
 const navItems = [
   { href: "/assessments", label: "Assessments", icon: ClipboardList },
   { href: "/vacancies", label: "Vacancies", icon: Briefcase },
@@ -27,12 +29,11 @@ export default function AssessorLayout() {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       {/* Top header */}
-      <header className="border-b bg-white sticky top-0 z-40">
+      <header className="border-b bg-white/90 backdrop-blur-md sticky top-0 z-40 transition-shadow shadow-sm">
         <div className="max-w-7xl mx-auto px-4 h-14 flex items-center justify-between">
-          <div className="flex items-center gap-6">
-            <Link to="/assessments" className="flex items-center gap-2">
-              <LayoutDashboard className="h-5 w-5 text-primary" />
-              <span className="font-semibold text-sm">Rakamin AI Interview</span>
+          <div className="flex items-center gap-8">
+            <Link to="/assessments" className="transition-opacity hover:opacity-90">
+              <BrandLogo size="md" />
             </Link>
             <nav className="flex items-center gap-1">
               {navItems.map(({ href, label, icon: Icon }) => (

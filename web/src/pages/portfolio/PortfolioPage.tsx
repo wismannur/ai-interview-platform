@@ -10,6 +10,8 @@ import { vacanciesApi } from "@/services/vacancies";
 import { portfoliosApi } from "@/services/portfolios";
 import { usePolling } from "@/hooks/usePolling";
 import { ArrowLeft, Download, Loader2, RefreshCw, Zap, FileText } from "lucide-react";
+import SkillRadarChart from "@/components/fitgap/SkillRadarChart";
+import { parseLevel } from "@/utils/constants";
 import type { Portfolio, AssessorOverride, Vacancy } from "@/types";
 
 export default function PortfolioPage() {
@@ -186,6 +188,19 @@ export default function PortfolioPage() {
       {/* Ready state */}
       {!generating && portfolio?.generation_status === "complete" && (
         <>
+          {/* Visual Competency Radar Summary */}
+          {portfolio.skills.length >= 2 && (
+            <SkillRadarChart
+              comparisons={portfolio.skills.map((s) => ({
+                skill_label: s.skill_label,
+                required_level: 3,
+                candidate_level: overrides[s.id]?.override_level ?? parseLevel(s.ai_level),
+                result: (overrides[s.id]?.override_level ?? parseLevel(s.ai_level)) >= 3 ? "match" : "gap",
+                is_override: !!overrides[s.id],
+              }))}
+            />
+          )}
+
           {/* Configured skills */}
           <div className="space-y-3">
             <h2 className="text-sm font-semibold">Configured Skills</h2>

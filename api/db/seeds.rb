@@ -77,6 +77,17 @@ else
   puts "  Created organization: id=#{result['id']} scheme=#{result['scheme']}"
 end
 
+# ── Admin User ────────────────────────────────────────────────────────────────
+admin_user = User.find_or_initialize_by(email: "admin@rakamin.com")
+if admin_user.new_record?
+  admin_user.password = "password123"
+  admin_user.role = "admin"
+  admin_user.save!
+  puts "  Created default admin user: admin@rakamin.com (password: password123)"
+else
+  puts "  Admin user already exists: #{admin_user.email} (skipped)"
+end
+
 # ── B7 Skill Taxonomy (22 pilot skills) ──────────────────────────────────────
 
 B7_SKILLS = [
