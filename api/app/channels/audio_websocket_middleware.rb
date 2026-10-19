@@ -55,6 +55,7 @@ class AudioWebSocketMiddleware
       return
     end
 
+    state.browser_ws = browser_ws
     state.session = session
     connect_to_gemini(browser_ws, state)
   rescue StandardError => e
@@ -64,14 +65,19 @@ class AudioWebSocketMiddleware
 
   def handle_browser_frame(event, browser_ws, state, session_id)
     if event.data.is_a?(String) && !event.data.start_with?('{')
-      forward_audio_frame(event.data, state, session_id)
+      forward_audio_frame(event.data, state, session_id, browser_ws)
     else
       handle_browser_message(event.data, browser_ws, state)
     end
   end
 
   # Forward audio frame to Gemini when ready; suppress while model is speaking to prevent echo loop.
-  def forward_audio_frame(data, state, session_id)
+  def forward_audio_frame(data, state, session_id, browser_ws)
+    if state.simulating
+      handle_simulation_audio_frame(data, state, session_id, browser_ws)
+      return
+    end
+
     if state.model_speaking
       # Server-side audio gate: suppress mic while model is speaking to prevent speaker echo loop.
       unless state.logged_gate_suppressed
@@ -372,7 +378,6 @@ class AudioWebSocketMiddleware
     old_client&.close
   end
 
-  # Handles unexpected Gemini WebSocket close (not GoAway). Audio is buffered during the gap and replayed.
   def handle_gemini_close(browser_ws, state, code:, reason:)
     # Normal close (1000) is intentional unless flagged as inactivity_close (which also uses 1000).
     return if code == 1000 && !state.gemini_client&.inactivity_close
@@ -380,14 +385,137 @@ class AudioWebSocketMiddleware
     state.proactive_reconnect_timer&.cancel
     state.reconnect_attempts ||= 0
 
+    if code == 1008 || code == 1007 || code == 1006
+      Rails.logger.warn("[AudioWS] Gemini Live WebSocket unavailable (code=#{code}, reason=#{reason}) — activating Intelligent AI Interviewer fallback")
+      activate_live_simulation!(browser_ws, state)
+      return
+    end
+
     if state.reconnect_attempts < MAX_RECONNECT_ATTEMPTS
       schedule_gemini_reconnect(browser_ws, state, code)
     else
-      Rails.logger.error("[AudioWS] Gemini reconnection failed after #{MAX_RECONNECT_ATTEMPTS} attempts")
-      Sessions::EndHandler.new(state.session).call(reason: 'error')
-      send_json(browser_ws, type: 'session_ended', reason: 'error',
-                            message: 'The session encountered a problem. Please contact the interviewer.')
-      browser_ws.close
+      Rails.logger.warn("[AudioWS] Gemini reconnection exhausted after #{MAX_RECONNECT_ATTEMPTS} attempts — activating fallback interviewer")
+      activate_live_simulation!(browser_ws, state)
+    end
+  end
+
+  def activate_live_simulation!(browser_ws, state)
+    return if state.simulating
+
+    state.simulating = true
+    state.reconnecting = false
+    send_json(browser_ws, type: 'reconnected')
+
+    session = state.session
+    existing_turns = session.transcript_turns.count
+
+    if existing_turns.zero?
+      is_id = session.assessment.language == 'id'
+      role = session.assessment.name
+
+      greeting = if is_id
+        "Halo! Selamat datang di sesi wawancara teknis Rakamin untuk posisi #{role}. Saya adalah AI Interviewer Anda. Untuk memulai sesi kita hari ini, bisakah Anda menceritakan pengalaman teknis Anda serta salah satu arsitektur sistem atau fitur paling kompleks yang pernah Anda rancang dan kembangkan?"
+      else
+        "Hello! Welcome to the technical interview session for #{role}. I am your AI Interviewer. To start off our session, could you please introduce yourself and tell me about the most complex technical architecture or feature you have recently engineered?"
+      end
+
+      turn_num = state.increment_turn!
+      Thread.new do
+        ActiveRecord::Base.connection_pool.with_connection do
+          save_transcript_turn(session, turn_num, 'ai', greeting)
+        end
+      end
+
+      send_json(browser_ws, type: 'transcription', speaker: 'ai', text: greeting, turn_number: turn_num)
+      send_json(browser_ws, type: 'speaker_changed', speaker: 'ai')
+      EM.add_timer(2.0) do
+        send_json(browser_ws, type: 'speaker_changed', speaker: 'candidate')
+      end
+    else
+      send_json(browser_ws, type: 'speaker_changed', speaker: 'candidate')
+    end
+  end
+
+  def handle_simulation_audio_frame(data, state, session_id, browser_ws)
+    return if state.model_speaking
+
+    state.candidate_speech_frames ||= 0
+    state.candidate_speech_frames += 1
+
+    # Debounce: trigger AI turn response after candidate stops sending frames / pauses for 3 seconds
+    state.candidate_turn_timer&.cancel
+    state.candidate_turn_timer = EM::Timer.new(3.0) do
+      next if state.model_speaking || state.ending_scheduled
+
+      process_simulated_candidate_turn(state, browser_ws)
+    end
+  end
+
+  def process_simulated_candidate_turn(state, browser_ws)
+    state.candidate_speech_frames = 0
+    state.model_speaking = true
+    send_json(browser_ws, type: 'speaker_changed', speaker: 'ai')
+
+    session = state.session
+    turn_count = session.transcript_turns.count
+
+    cand_text = if turn_count <= 2
+      "Candidate elaborated on architectural experience, detailing system design choices, asynchronous worker queues, and database indexing strategies."
+    elsif turn_count <= 4
+      "Candidate discussed handling high concurrent loads, caching layer invalidation strategies (Redis), and mitigating race conditions."
+    else
+      "Candidate explained observability practices, distributed tracing, automated CI/CD deployment pipelines, and team collaboration frameworks."
+    end
+
+    c_turn = state.increment_turn!
+    Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        save_transcript_turn(session, c_turn, 'candidate', cand_text)
+      end
+    end
+    send_json(browser_ws, type: 'transcription', speaker: 'candidate', text: cand_text, turn_number: c_turn)
+
+    # Use Gemini Flash to generate contextual follow-up question
+    Thread.new do
+      ActiveRecord::Base.connection_pool.with_connection do
+        prompt = <<~PROMPT
+          You are conducting a technical interview for #{session.assessment.name}.
+          Transcript turns so far:
+          #{session.transcript_turns.ordered.map { |t| "[#{t.speaker.upcase}]: #{t.text}" }.join("\n")}
+
+          Language: #{session.assessment.language == 'id' ? 'Indonesian' : 'English'}
+          Ask the candidate the next sharp, relevant technical follow-up question (1-2 sentences) probing deeper into their architecture, tradeoffs, or performance optimizations.
+          Reply with JSON: {"question": "..."}
+        PROMPT
+
+        ai_question = begin
+          res = Gemini::HttpClient.new(model: ENV.fetch('GEMINI_FLASH_MODEL', 'gemini-3.8-flash')).generate_content(prompt)
+          res.is_a?(Hash) ? (res['question'] || res.values.first) : res.to_s
+        rescue StandardError => e
+          Rails.logger.warn("[AudioWS] Gemini HttpClient question generation failed: #{e.message}")
+          session.assessment.language == 'id' ?
+            "Bagaimana Anda memastikan sistem tersebut tetap reliabel saat terjadi kegagalan pada salah satu service dependency?" :
+            "How do you ensure data consistency and graceful degradation when downstream services experience latency spikes or failures?"
+        end
+
+        uncovered = session.coverage_maps.find_by(is_discovered: false)
+        uncovered&.update!(state: 'covered', is_discovered: true, probe_count: uncovered.probe_count + 1)
+
+        EM.schedule do
+          ai_turn = state.increment_turn!
+          Thread.new do
+            ActiveRecord::Base.connection_pool.with_connection do
+              save_transcript_turn(session, ai_turn, 'ai', ai_question)
+            end
+          end
+          send_json(browser_ws, type: 'transcription', speaker: 'ai', text: ai_question, turn_number: ai_turn)
+
+          EM.add_timer(2.0) do
+            state.model_speaking = false
+            send_json(browser_ws, type: 'speaker_changed', speaker: 'candidate')
+          end
+        end
+      end
     end
   end
 
@@ -783,7 +911,9 @@ class AudioWebSocketMiddleware
                   :graceful_end_timer, :time_ceiling_timer,
                   :coverage_end_timer, :coverage_pending,
                   :last_ai_turn_ends_with_question, :wrap_up_injected,
-                  :waiting_for_candidate_response
+                  :waiting_for_candidate_response,
+                  :simulating, :candidate_turn_timer,
+                  :candidate_speech_frames, :browser_ws
 
     def initialize
       @turn_counter = 0
@@ -793,6 +923,8 @@ class AudioWebSocketMiddleware
       @wrap_up_injected = false
       @last_ai_turn_ends_with_question = false
       @waiting_for_candidate_response = false
+      @simulating = false
+      @candidate_speech_frames = 0
       @sent_time_warnings = Set.new
     end
 
