@@ -20,6 +20,7 @@ import TranscriptBubble from "@/components/interview/TranscriptBubble";
 import { useAudioCapture } from "@/hooks/useAudioCapture";
 import { useAudioPlayback } from "@/hooks/useAudioPlayback";
 import { useAudioWebSocket } from "@/hooks/useAudioWebSocket";
+import { useWakeLock } from "@/hooks/useWakeLock";
 import { sessionsApi } from "@/services/sessions";
 import HardwareCheck from "@/components/HardwareCheck";
 import PrivacyConsentModal from "@/components/interview/PrivacyConsentModal";
@@ -33,7 +34,8 @@ import {
   Sparkles,
   Award,
   ChevronRight,
-  AlertTriangle
+  AlertTriangle,
+  Sun
 } from "lucide-react";
 import type { CandidateInfo, InterviewState, InterviewSpeaker, TranscriptTurn } from "@/types";
 
@@ -53,6 +55,36 @@ export default function InterviewPage() {
   const [micMuted, setMicMuted] = useState(false);
   const micMutedRef = useRef(false);
 
+  // Keep screen awake during active interview session (Screen Wake Lock API)
+  const isInterviewOngoing = interviewState !== "idle" && interviewState !== "complete";
+  const { isActive: isScreenAwake } = useWakeLock({
+    enabled: isInterviewOngoing,
+  });
+
+  // Auto-scroll refs for transcript chat stream
+  const transcriptContainerRef = useRef<HTMLDivElement>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  const scrollToBottom = useCallback((smooth = true) => {
+    if (transcriptEndRef.current) {
+      transcriptEndRef.current.scrollIntoView({
+        behavior: smooth ? "smooth" : "auto",
+        block: "end",
+      });
+    } else if (transcriptContainerRef.current) {
+      transcriptContainerRef.current.scrollTo({
+        top: transcriptContainerRef.current.scrollHeight,
+        behavior: smooth ? "smooth" : "auto",
+      });
+    }
+  }, []);
+
+  // Auto scroll to latest chat whenever transcript updates (especially on AI responses)
+  useEffect(() => {
+    if (transcript.length === 0) return;
+    scrollToBottom(true);
+  }, [transcript, scrollToBottom]);
+
   // Fetch candidate info
   useEffect(() => {
     if (!token) return;
@@ -71,6 +103,11 @@ export default function InterviewPage() {
 
   const handleStateChange = useCallback((state: InterviewState) => {
     setInterviewState(state);
+
+    if (state === "complete") {
+      stopCapture();
+      stopPlayback();
+    }
 
     if (state === "draining_audio") {
       muteRef.current?.();
@@ -104,7 +141,7 @@ export default function InterviewPage() {
   }, []);
 
   const handleTranscript = useCallback((turn: Pick<TranscriptTurn, "speaker" | "text">) => {
-    setTranscript((prev) => [...prev.slice(-9), turn]);
+    setTranscript((prev) => [...prev.slice(-49), turn]);
   }, []);
 
   const { playChunk, stop: stopPlayback, scheduleAfterPlayback, waitForDrain, cancelDrain } =
@@ -161,6 +198,18 @@ export default function InterviewPage() {
 
   muteRef.current = mute;
   unmuteRef.current = unmute;
+
+  // Ensure microphone and audio playback are terminated when session completes or component unmounts
+  useEffect(() => {
+    if (interviewState === "complete" || interviewState === "ending") {
+      stopCapture();
+      stopPlayback();
+    }
+    return () => {
+      stopCapture();
+      stopPlayback();
+    };
+  }, [interviewState, stopCapture, stopPlayback]);
 
   const toggleMic = useCallback(() => {
     if (micMutedRef.current) {
@@ -318,15 +367,27 @@ export default function InterviewPage() {
           </span>
         </div>
 
-        {candidateInfo && (
-          <div className="flex items-center gap-1.5 font-mono text-xs">
-            <InterviewTimer
-              totalSeconds={candidateInfo.time_limit_min * 60}
-              running={interviewState === "active"}
-              onExpired={endInterview}
-            />
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {isScreenAwake && (
+            <div
+              title="Layar tetap menyala selama sesi wawancara aktif"
+              className="hidden sm:inline-flex items-center gap-1 text-[11px] font-medium text-teal-700 bg-teal-50 border border-teal-200/80 px-2.5 py-0.5 rounded-full"
+            >
+              <Sun className="h-3 w-3 text-teal-600 animate-pulse" />
+              <span>Layar Terjaga</span>
+            </div>
+          )}
+
+          {candidateInfo && (
+            <div className="flex items-center gap-1.5 font-mono text-xs">
+              <InterviewTimer
+                totalSeconds={candidateInfo.time_limit_min * 60}
+                running={interviewState === "active"}
+                onExpired={endInterview}
+              />
+            </div>
+          )}
+        </div>
       </div>
 
       {/* Reconnecting banner */}
@@ -343,10 +404,14 @@ export default function InterviewPage() {
 
         {/* Live Transcript Stream */}
         {transcript.length > 0 && (
-          <div className="w-full space-y-2.5 overflow-y-auto max-h-[42vh] p-1 scroll-smooth">
+          <div
+            ref={transcriptContainerRef}
+            className="w-full space-y-2.5 overflow-y-auto max-h-[42vh] p-1 scroll-smooth custom-scrollbar"
+          >
             {transcript.map((turn, i) => (
               <TranscriptBubble key={i} speaker={turn.speaker} text={turn.text} />
             ))}
+            <div ref={transcriptEndRef} className="h-px w-full" aria-hidden="true" />
           </div>
         )}
       </div>
