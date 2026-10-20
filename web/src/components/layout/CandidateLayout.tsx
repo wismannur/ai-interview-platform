@@ -24,7 +24,7 @@ export default function CandidateLayout() {
 
       {/* Candidate Privacy Footer */}
       <footer className="border-t border-slate-100 py-4 text-center text-xs text-slate-600">
-        <div className="max-w-md mx-auto px-4 flex items-center justify-center gap-2">
+        <div className="max-w-5xl mx-auto px-4 flex items-center justify-center gap-2">
           <ShieldCheck className="h-3.5 w-3.5 text-emerald-600 shrink-0" />
           <span>Sesi wawancara dilindungi UU PDP No. 27/2022. Rekaman audio hanya diakses oleh tim hiring resmi.</span>
         </div>
