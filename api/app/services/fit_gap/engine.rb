@@ -8,7 +8,7 @@ module FitGap
       @portfolio = portfolio
       @vacancy   = vacancy
       @gemini_client = gemini_client || Gemini::HttpClient.new(
-        model:   ENV.fetch('GEMINI_FLASH_MODEL', 'gemini-2.0-flash-001'),
+        model:   ENV.fetch('GEMINI_FLASH_MODEL', 'gemini-3.8-flash'),
         timeout: 30
       )
     end
@@ -120,8 +120,8 @@ module FitGap
         You are writing a fit/gap analysis narrative for a candidate evaluation.
 
         ROLE: #{vacancy.role_title}
-        #{vacancy.culture_dimensions.present? ? "CULTURE EXPECTATIONS:\n#{vacancy.culture_dimensions}\n" : ""}
-        #{vacancy.competency_expectations.present? ? "COMPETENCY EXPECTATIONS:\n#{vacancy.competency_expectations}\n" : ""}
+        #{vacancy.culture_dimensions.present? ? "CULTURE EXPECTATIONS:\n<culture_expectations>\n#{vacancy.culture_dimensions}\n</culture_expectations>\n" : ""}
+        #{vacancy.competency_expectations.present? ? "COMPETENCY EXPECTATIONS:\n<competency_expectations>\n#{vacancy.competency_expectations}\n</competency_expectations>\n" : ""}
 
         SKILL COMPARISON RESULTS:
         - Matches (#{matches.count}): #{matches.map { |c| "#{c[:skill_label]} (L#{c[:candidate_level]})" }.join(', ')}
