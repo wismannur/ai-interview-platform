@@ -80,6 +80,13 @@ export default function LiveMonitorPage() {
   const [sessionActive, setSessionActive] = useState(true);
   const lastTurnRef = useRef<number>(0);
   const pollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const transcriptEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (transcript.length > 0) {
+      transcriptEndRef.current?.scrollIntoView({ behavior: "smooth", block: "end" });
+    }
+  }, [transcript]);
 
   const { coverageMap, sessionEnded, sessionEndReason, isConnected } =
     useCoverageWebSocket(Number(sessionId));
@@ -495,7 +502,7 @@ export default function LiveMonitorPage() {
               </div>
             </CardHeader>
 
-            <CardContent className="p-4 overflow-y-auto space-y-3 flex-1 bg-slate-50/40">
+            <CardContent className="p-4 overflow-y-auto space-y-3 flex-1 bg-slate-50/40 custom-scrollbar scroll-smooth">
               {transcript.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-center">
                   <div className="w-12 h-12 rounded-2xl bg-teal-50 border border-teal-100 flex items-center justify-center text-teal-600 mb-3">
@@ -507,37 +514,40 @@ export default function LiveMonitorPage() {
                   </p>
                 </div>
               ) : (
-                (viewMode === "recent" ? transcript.slice(-10) : transcript).map((turn) => (
-                  <div
-                    key={turn.id}
-                    className={cn(
-                      "p-3.5 rounded-2xl border transition-all text-sm",
-                      turn.speaker === "ai"
-                        ? "bg-teal-50/40 border-teal-100/80 mr-6"
-                        : "bg-white border-slate-200/80 ml-6 shadow-xs"
-                    )}
-                  >
-                    <div className="flex items-center justify-between gap-2 mb-1.5">
-                      <div className="flex items-center gap-1.5">
-                        <div className={cn(
-                          "w-5 h-5 rounded-md flex items-center justify-center text-[10px]",
-                          turn.speaker === "ai" ? "bg-teal-600 text-white" : "bg-slate-800 text-white"
-                        )}>
-                          {turn.speaker === "ai" ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                <>
+                  {(viewMode === "recent" ? transcript.slice(-10) : transcript).map((turn) => (
+                    <div
+                      key={turn.id}
+                      className={cn(
+                        "p-3.5 rounded-2xl border transition-all text-sm",
+                        turn.speaker === "ai"
+                          ? "bg-teal-50/40 border-teal-100/80 mr-6"
+                          : "bg-white border-slate-200/80 ml-6 shadow-xs"
+                      )}
+                    >
+                      <div className="flex items-center justify-between gap-2 mb-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <div className={cn(
+                            "w-5 h-5 rounded-md flex items-center justify-center text-[10px]",
+                            turn.speaker === "ai" ? "bg-teal-600 text-white" : "bg-slate-800 text-white"
+                          )}>
+                            {turn.speaker === "ai" ? <Bot className="h-3 w-3" /> : <User className="h-3 w-3" />}
+                          </div>
+                          <span className="text-xs font-bold text-slate-800">
+                            {turn.speaker === "ai" ? "Rakamin AI Interviewer" : candidateName}
+                          </span>
                         </div>
-                        <span className="text-xs font-bold text-slate-800">
-                          {turn.speaker === "ai" ? "Rakamin AI Interviewer" : candidateName}
+                        <span className="text-[10px] text-slate-400 font-mono">
+                          Turn #{turn.turn_number}
                         </span>
                       </div>
-                      <span className="text-[10px] text-slate-400 font-mono">
-                        Turn #{turn.turn_number}
-                      </span>
+                      <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap pl-6">
+                        {turn.text}
+                      </p>
                     </div>
-                    <p className="text-xs text-slate-700 leading-relaxed whitespace-pre-wrap pl-6">
-                      {turn.text}
-                    </p>
-                  </div>
-                ))
+                  ))}
+                  <div ref={transcriptEndRef} className="h-px w-full" aria-hidden="true" />
+                </>
               )}
             </CardContent>
           </Card>
