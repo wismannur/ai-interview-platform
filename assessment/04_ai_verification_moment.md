@@ -1,76 +1,63 @@
-# Section 04: AI Verification Moment (Senior Staff Critical Oversight)
+# Section 04: AI Verification Moments (Senior Staff Critical Oversight)
 
 **Author**: Wisman Nur (Lead / Senior Staff Product Engineer)  
+**Standard**: Monozukuri (Craftsmanship Beyond Minimum Baseline)  
 **Date**: October 2026  
+**Target Branch:** `feat/monozukuri-interview-revamp-wismannur`  
 
 ---
 
 ## 1. Context & Motivation
 
-In modern AI-assisted engineering workflows, LLMs (such as GPT-4, Claude, or Copilot) frequently accelerate boilerplate generation. However, without deep architectural understanding and senior staff scrutiny, LLM-generated code often introduces subtle, high-severity bugs that pass superficial tests but cause catastrophic silent failures in production.
+In modern AI-augmented software engineering, Large Language Models (LLMs) accelerate code generation and boilerplate scaffolding. However, LLMs lack true architectural comprehension of:
+1. Relational database triggers, cascading foreign key deletions, and transactional rollback boundaries.
+2. Browser lifecycle specifications (e.g. W3C Screen Wake Lock release behavior on tab visibility changes).
+3. Adversarial prompt injection attacks in real-time conversational agents.
 
-This section documents a concrete **AI Verification Moment** encountered during the audit and hardening of `ai-interview-platform`.
+Without rigorous senior staff scrutiny, LLM-generated solutions introduce subtle, high-severity defects that pass superficial unit tests but cause silent data loss or operational failure in production. 
+
+This section documents concrete **AI Verification Moments** where Senior Staff intervention caught and corrected flawed AI proposals.
 
 ---
 
-## 2. The Hallucinated / Flawed AI Suggestion
+## 2. Case Study 1: The ActiveRecord Cascading Deletion Trap (P0-1)
 
-### The Scenario
-When prompted to resolve **P0-1** (*"Portfolio regeneration wipes human assessor overrides"*), an AI assistant proposed the following "quick fix" in `Portfolios::Generator#save_skills`:
+### The Flawed AI Proposal
+When prompted to resolve **P0-1** (*"Portfolio regeneration wipes human assessor overrides"*), an AI coding tool suggested the following "quick fix" in `Portfolios::Generator#save_skills`:
 
 ```ruby
-# AI-GENERATED NAIVE PROPOSAL (REJECTED):
+# FLIMSY AI-GENERATED PROPOSAL (REJECTED):
 def save_skills(portfolio, data)
-  # Preserve overrides by array
+  # Preserve overrides in memory array
   overrides = portfolio.portfolio_skills.map(&:assessor_override).compact
 
-  # Recreate skills
+  # Destroy old skills
   portfolio.portfolio_skills.destroy_all
   
   (data['configured_skills'] || []).each do |skill_data|
     ps = portfolio.portfolio_skills.create!(...)
-    # AI thought this would work:
+    # AI assumed the in-memory override object was still alive:
     matching_override = overrides.find { |o| o.portfolio_skill.skill_label == ps.skill_label }
     matching_override.update!(portfolio_skill: ps) if matching_override
   end
 end
 ```
 
-### Why This Proposal Was Lethally Flawed (Senior Staff Critique)
-
-1. **ActiveRecord Association Cascading Deletion (`dependent: :destroy`)**:
-   In `PortfolioSkill`, the association is declared as:
-   ```ruby
-   has_one :assessor_override, dependent: :destroy
-   ```
-   When `portfolio.portfolio_skills.destroy_all` executes, PostgreSQL and ActiveRecord immediately cascade-delete all existing `assessor_overrides` rows in the database. Thus, the in-memory array `overrides` held frozen, deleted objects (`o.destroyed? == true`). Calling `matching_override.update!(...)` later would either raise `ActiveRecord::RecordNotFound` or silently fail because the foreign key had already been destroyed on disk!
-
-2. **No Database Transaction Boundary**:
-   The AI did not wrap the destruction and recreation in an `ActiveRecord::Base.transaction`. If network latency or a Gemini JSON syntax error occurred halfway through skill recreation, the candidate's existing portfolio skills were already destroyed, leaving the portfolio permanently corrupted in a partial state.
-
+### Senior Staff Critical Diagnosis
+1. **The Relational Cascade Trap (`dependent: :destroy`)**:
+   In `PortfolioSkill`, the association is declared as `has_one :assessor_override, dependent: :destroy`. When `destroy_all` executed on parent skills, PostgreSQL and ActiveRecord immediately executed `DELETE FROM assessor_overrides WHERE portfolio_skill_id IN (...)`. The in-memory array `overrides` held frozen, destroyed records (`o.destroyed? == true`). Calling `matching_override.update!(...)` later either raised `ActiveRecord::RecordNotFound` or failed silently.
+2. **Missing Transaction Boundary**:
+   The AI did not wrap the wipe-and-rebuild sequence inside an `ActiveRecord::Base.transaction`. If an exception occurred during Gemini JSON parsing halfway through skill recreation, all candidate skills were already destroyed, corrupting the portfolio permanently.
 3. **Loss of Assessor Metadata**:
-   The AI suggestion failed to account for `overridden_by` and `overridden_at` timestamps, causing audit log truncation.
+   The AI suggestion failed to snapshot `overridden_by` and `overridden_at` audit timestamps.
 
----
-
-## 3. The Senior Staff Engineering Solution
-
-Recognizing the relational and transactional trap, we engineered a robust solution:
-
-1. **Pre-Extraction into Detached Attribute Value Objects**:
-   Before destroying existing records, we snapshot the override attributes (`override_level`, `assessor_notes`, `overridden_by`, `overridden_at`) into a decoupled ruby Hash keyed by `skill_id` (or normalized `skill_label`).
-
-2. **Atomic Transactional Rollback Protection**:
-   We wrapped the entire wipe-and-rebuild sequence inside `ActiveRecord::Base.transaction do ... end`. If any step fails, the database automatically rolls back to the pre-existing state without data loss.
-
-3. **Re-Creation and Re-Association**:
-   After the new `PortfolioSkill` is inserted with its fresh AI evidence and level, we query the preserved hash and call `portfolio_skill.create_assessor_override!(...)` with the preserved human notes, level, and timestamp.
+### The Production Hardened Solution
+We discarded the AI's proposal and implemented the detached attribute value-object snapshot pattern inside an atomic database transaction:
 
 ```ruby
-# PRODUCTION HARDENED IMPLEMENTATION:
 def save_skills(portfolio, data)
   ActiveRecord::Base.transaction do
-    # 1. Snapshot human overrides before destroying child records
+    # 1. Snapshot human overrides into detached Ruby hashes before destroying records
     preserved_overrides = {}
     portfolio.portfolio_skills.includes(:assessor_override).each do |ps|
       if ps.assessor_override.present?
@@ -84,23 +71,80 @@ def save_skills(portfolio, data)
       end
     end
 
-    # 2. Recreate skills cleanly
+    # 2. Clean slate skill recreation
     portfolio.portfolio_skills.destroy_all
 
-    # 3. Insert and reapply overrides
+    # 3. Insert and reapply overrides from preserved value-objects
     (data['configured_skills'] || []).each do |skill_data|
       ps = portfolio.portfolio_skills.create!(...)
       reapply_override_if_present(ps, preserved_overrides)
     end
-    # ...
   end
 end
 ```
 
 ---
 
-## 4. Key Takeaways for AI-Augmented Engineering
+## 3. Case Study 2: Screen Wake Lock & The Tab Visibility Trap (P2-4)
 
-1. **Verify Relational Lifecycle Semantics**: AI models frequently understand code syntax but fail to model relational database cascade triggers (`dependent: :destroy`) and state mutation lifecycles.
-2. **Never Trust Unbounded Generative Output**: An AI prompt requesting JSON will frequently wrap the response in markdown blocks (````json ... ````) or append explanatory prose. Hardening must include strict JSON MIME-type parameters and regex fence stripping.
-3. **The Role of the Senior Engineer**: AI is a force multiplier for ideation and scaffolding, but the human staff engineer remains the essential guardian of data integrity, security compliance, and system correctness.
+### The Flawed AI Proposal
+When tasked with preventing candidate screens from sleeping during 30–45 minute interviews, an AI assistant provided this hook:
+
+```typescript
+// FLIMSY AI-GENERATED HOOK (REJECTED):
+export function useWakeLock() {
+  useEffect(() => {
+    navigator.wakeLock?.request('screen');
+  }, []);
+}
+```
+
+### Senior Staff Critical Diagnosis
+- **The W3C Wake Lock Specification Trap**:
+  According to the W3C Screen Wake Lock API standard, **browsers automatically release all active wake locks whenever a tab is minimized, placed in the background, or loses visibility (`document.visibilityState === 'hidden'`)**.
+- If a candidate momentarily switches to another window (e.g. referencing their resume or answering a recruiter message) and returns to the interview, the AI-generated wake lock was **permanently dead**! The screen would dim and sleep 5 minutes later during active speaking.
+
+### The Production Hardened Solution (`web/src/hooks/useWakeLock.ts`)
+Senior staff engineered a comprehensive hook that tracks visibility changes and automatically re-acquires the lock sentinel whenever the tab becomes visible again:
+
+```typescript
+useEffect(() => {
+  if (!active || !isSupported) return;
+
+  requestWakeLock();
+
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible' && active) {
+      requestWakeLock(); // Auto-reacquire when returning to tab
+    }
+  };
+
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    releaseWakeLock(); // Deterministic cleanup on unmount
+  };
+}, [active, isSupported, requestWakeLock, releaseWakeLock]);
+```
+This is verified by 4 comprehensive Vitest tests in `web/src/test/useWakeLock.test.ts`.
+
+---
+
+## 4. Case Study 3: Hardware Audio Stream Contention & Mic Lock (P1-5)
+
+### The Flawed AI Proposal
+The AI suggested moving from `HardwareCheck` to `InterviewPage` by simply rendering the next screen component.
+
+### Senior Staff Critical Diagnosis
+- Modern web browsers enforce strict exclusive locks on hardware audio streams depending on OS drivers.
+- If `HardwareCheck` does not explicitly iterate over all active `MediaStreamTrack` instances and invoke `track.stop()`, the browser holds the microphone device hostage in the background.
+- When `InterviewPage` attempted to initialize its `AudioWorkletNode`, the browser threw `NotReadableError: Device in use`, completely breaking candidate onboarding.
+- Senior staff instituted explicit track disposal in `HardwareCheck.tsx` and `useAudioCapture.ts`, fully covered by `HardwareCheckMicCleanup.test.tsx`.
+
+---
+
+## 5. Key Principles for Frontier AI Engineering
+
+1. **Verify Relational Lifecycle Semantics**: AI models write plausible syntactical code but routinely fail to predict cascading database triggers (`dependent: :destroy`) and state mutation side effects.
+2. **Model Real-World Browser Invariants**: Browser APIs (Wake Lock, MediaDevices, AudioWorklet) have nuanced lifecycle events (`visibilitychange`, unmount teardown) that naive AI prompts fail to safeguard.
+3. **The Role of the Senior Staff Engineer**: AI serves as a powerful accelerator for scaffolding and ideation, but human architectural judgment remains the essential gatekeeper of data integrity, compliance, and production reliability.

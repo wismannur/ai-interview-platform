@@ -499,7 +499,7 @@
       <div class="badge-bar">
         <span class="badge badge-primary">Laporan Studi Kasus Teknis</span>
         <span class="badge badge-monozukuri">Craftsmanship Monozukuri</span>
-        <span class="badge badge-verified">Pengujian: 100% Lolos (35/35)</span>
+        <span class="badge badge-verified">Pengujian: 100% Lolos (51/51)</span>
         <span class="badge badge-compliance">Kepatuhan UU PDP No. 27/2022</span>
       </div>
       <h1>AI Interview Platform: Laporan Hardening Produk & Engineering</h1>
@@ -513,7 +513,7 @@
 
     <h2><span class="section-num">0</span> Ringkasan Eksekutif</h2>
     <p>
-      Laporan ini merinci audit arsitektural, remediasi cacat kritis (<em>critical defects</em>), dan <em>release engineering</em> untuk <strong>AI Interview Platform</strong> (backend Rails API + frontend React 18 TypeScript). Berlandaskan etos <strong>Monozukuri</strong> (ketelitian teknologi, keahlian mendalam/<em>deep craft</em>, dan keunggulan operasional), kami mengeliminasi celah <em>silent data-loss</em>, menyelesaikan potensi liabilitas kepatuhan privasi nasional berdasarkan <strong>UU PDP No. 27/2022</strong>, serta menerapkan rangkaian <em>automated testing</em> yang defensif dan tangguh dengan tingkat kelulusan 100%.
+      Laporan ini merinci audit arsitektural, remediasi cacat kritis (<em>critical defects</em>), dan <em>release engineering</em> untuk <strong>AI Interview Platform</strong> (backend Rails API + frontend React 18 TypeScript). Berlandaskan etos <strong>Monozukuri</strong> (ketelitian teknologi, keahlian mendalam/<em>deep craft</em>, dan keunggulan operasional), kami mengeliminasi celah <em>silent data-loss</em>, menyelesaikan potensi liabilitas kepatuhan privasi nasional berdasarkan <strong>UU PDP No. 27/2022</strong>, menuntaskan penguncian hardware mikrofon browser di dunia nyata, serta menerapkan rangkaian <em>automated testing</em> yang defensif dan tangguh dengan tingkat kelulusan 100%.
     </p>
 
     <div class="kpi-deck">
@@ -522,7 +522,7 @@
         <div class="kpi-label">Cacat P0 Dieliminasi</div>
       </div>
       <div class="kpi-card kpi-emerald">
-        <div class="kpi-value">35 / 35</div>
+        <div class="kpi-value">51 / 51</div>
         <div class="kpi-label">Spesifikasi Lolos (100%)</div>
       </div>
       <div class="kpi-card kpi-amber">
@@ -542,7 +542,9 @@
         <li><strong>Perutean Kandidat Tuntas (P0-2)</strong>: Menuntaskan galat 404 pada URL undangan dengan menyelaraskan host ke port <em>frontend</em> (<code>5173</code>).</li>
         <li><strong>Hardening Klien AI (P0-3)</strong>: Klien Gemini diperkuat via negosiasi MIME JSON (<code>application/json</code>) dan sanitasi regex <em>code fence</em>.</li>
         <li><strong>Kepatuhan UU PDP (P0-4 &amp; P1-2)</strong>: Filter parameter Rails memblokir PII pada log; modal persetujuan React membatasi akses mikrofon sebelum izin.</li>
-        <li><strong>Rigor Pengujian Defensif</strong>: 24 spesifikasi RSpec + 11 Vitest, diverifikasi via mutan <em>Seeded Fault</em> (kegagalan <em>Red</em> di baris 91, pulih ke <em>Green</em>).</li>
+        <li><strong>Keandalan Hardware &amp; Operasional (P1-5, P1-6, P2-4)</strong>: Pelepasan track mikrofon deterministik menghindari <code>NotReadableError</code>, mitigasi penutupan WebSocket 1008/1006 dengan state machine fallback, serta Screen Wake Lock API dengan pemulihan otomatis saat tab fokus kembali.</li>
+        <li><strong>Ergonomi Asesor &amp; Kandidat (P2-5, P3-1, P3-2)</strong>: Panel override kalibrasi di-enkapsulasi dalam portal Radix Popover (bebas pergeseran layout), <code>SkillRadarChart</code> visual multi-axis, dan visualizer audio <code>AiLiveOrb</code> real-time.</li>
+        <li><strong>Rigor Pengujian Defensif</strong>: 27 spesifikasi RSpec + 24 Vitest di 9 suites, diverifikasi via mutan <em>Seeded Fault</em> (kegagalan <em>Red</em> di baris 91, pulih ke <em>Green</em>).</li>
       </ul>
     </div>
 
@@ -574,7 +576,7 @@
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Standar Monozukuri</div>
       <div>Penulis: Wisman Nur &bull; Oktober 2026</div>
-      <div>Halaman 1 dari 5</div>
+      <div>Bagian 0 &amp; 1 &bull; Konteks &amp; Mandat Hukum</div>
     </div>
 
     <!-- ==================== PAGE 2 ==================== -->
@@ -650,7 +652,21 @@
           <td><span class="sev-tag sev-p1">P1</span></td>
           <td>Tidak adanya rangkaian pengujian otomatis pada direktori <code>api/</code> maupun <code>web/</code>.</td>
           <td><strong>Utang Regresi Tinggi:</strong> Risiko tinggi terjadinya <em>silent regressions</em> pada setiap <em>pull request</em> berikutnya.</td>
-          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> 24 spesifikasi RSpec + 11 spesifikasi Vitest ditambahkan (100% lolos).</td>
+          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> 27 spesifikasi RSpec + 24 spesifikasi Vitest ditambahkan (100% lolos).</td>
+        </tr>
+        <tr>
+          <td><strong>P1-5</strong></td>
+          <td><span class="sev-tag sev-p1">P1</span></td>
+          <td><code>HardwareCheck.tsx</code> tidak melepaskan track mikrofon saat berpindah langkah.</td>
+          <td><strong>Hardware Lock:</strong> Browser menahan hardware mic, memicu <code>NotReadableError</code> pada AudioWorklet interview.</td>
+          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> Pelepasan eksplisit <code>track.stop()</code> saat unmount &amp; mulai.</td>
+        </tr>
+        <tr>
+          <td><strong>P1-6</strong></td>
+          <td><span class="sev-tag sev-p1">P1</span></td>
+          <td><code>AudioWebsocketMiddleware</code> memutus sesi saat penutupan WebSocket 1008/1006.</td>
+          <td><strong>Disrupsi Sesi:</strong> Pelanggaran kebijakan atau jitter jaringan mematikan wawancara secara mendadak.</td>
+          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> State machine reconnect otomatis &amp; pertahanan anti-jailbreak prompt.</td>
         </tr>
         <tr>
           <td><strong>P2-1</strong></td>
@@ -673,17 +689,31 @@
           <td><strong>Kebingungan Visual:</strong> Merender tanda hubung kosong tanpa penjelasan "Belum Dinilai".</td>
           <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> <em>Badge</em> dan penghitung khusus <code>⚪ Belum Dinilai</code> ditambahkan.</td>
         </tr>
+        <tr>
+          <td><strong>P2-4</strong></td>
+          <td><span class="sev-tag sev-p2">P2</span></td>
+          <td>Layar laptop/ponsel mati (sleep) saat kandidat berbicara pada sesi 30–45 menit.</td>
+          <td><strong>Interupsi Wawancara:</strong> Layar mati menghentikan streaming WebSocket audio dan memutus sesi.</td>
+          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> Implementasi Screen Wake Lock API dengan re-acquire otomatis saat tab kembali aktif.</td>
+        </tr>
+        <tr>
+          <td><strong>P2-5</strong></td>
+          <td><span class="sev-tag sev-p2">P2</span></td>
+          <td>Panel override kalibrasi inline pada kartu skill menyebabkan pergeseran layout drastis.</td>
+          <td><strong>Cacat Ergonomi:</strong> Membuka editor melompatkan tinggi kartu dan merusak keselarasan grid.</td>
+          <td><strong style="color: #16a34a;">TERSELESAIKAN:</strong> Alur kalibrasi di-enkapsulasi dalam portal Radix Popover.</td>
+        </tr>
       </tbody>
     </table>
 
     <div class="callout callout-staff">
-      <strong>Tata Kelola Keparahan Rekayasa:</strong> Berdasarkan standar rilis Monozukuri kami, tidak ada PR yang boleh digabungkan jika masih memiliki cacat P0 (pemblokir sistem/kehilangan data) atau P1 (kepatuhan/integritas). Seluruh 8 isu P0 dan P1 telah diselesaikan, diverifikasi secara defensif, dan diperkokoh dengan spesifikasi regresi otomatis.
+      <strong>Tata Kelola Keparahan Rekayasa:</strong> Berdasarkan standar rilis Monozukuri kami, tidak ada PR yang boleh digabungkan jika masih memiliki cacat P0 (pemblokir sistem/kehilangan data) atau P1 (kepatuhan/integritas). Seluruh isu P0, P1, dan P2 telah diselesaikan, diverifikasi secara defensif, dan diperkokoh dengan spesifikasi regresi otomatis.
     </div>
 
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Standar Monozukuri</div>
       <div>Penulis: Wisman Nur &bull; Oktober 2026</div>
-      <div>Halaman 2 dari 5</div>
+      <div>Bagian 2 &bull; Analisis Kesenjangan P0–P3</div>
     </div>
 
     <!-- ==================== PAGE 3 ==================== -->
@@ -763,7 +793,7 @@
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Standar Monozukuri</div>
       <div>Penulis: Wisman Nur &bull; Oktober 2026</div>
-      <div>Halaman 3 dari 5</div>
+      <div>Bagian 3 &bull; Analisis Trade-off Arsitektur</div>
     </div>
 
     <!-- ==================== PAGE 4 ==================== -->
@@ -807,27 +837,46 @@ end</code></pre>
   :invite_token, :candidate_name, :audio_data, :audio_chunk, :transcript_text
 ]</code></pre>
 
+    <div class="code-label">3. Siklus Hidup Screen Wake Lock dengan Pemulihan Otomatis (web/src/hooks/useWakeLock.ts)</div>
+    <pre><code>useEffect(() => {
+  if (!active || !isSupported) return;
+  requestWakeLock();
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible' && active) requestWakeLock();
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    releaseWakeLock();
+  };
+}, [active, isSupported, requestWakeLock, releaseWakeLock]);</code></pre>
+
     <h3>4.2 Bukti Eksekusi Pengujian Otomatis</h3>
     
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
-        <p style="margin-bottom: 2px;"><strong>Backend: RSpec Suite (24 lolos, 0 gagal)</strong></p>
+        <p style="margin-bottom: 2px;"><strong>Backend: RSpec Suite (27 lolos, 0 gagal)</strong></p>
         <pre><code>$ bundle exec rspec
-................<span class="term-dim">2026-10-16T22:21:17Z INFO: Sidekiq</span>
-........
+<span class="term-dim">...................INFO: Sidekiq connecting to Redis
+........</span>
 
-Finished in 0.41643 seconds
-<span class="term-green">24 examples, 0 failures</span></code></pre>
+Finished in 0.45288 seconds
+<span class="term-green">27 examples, 0 failures</span></code></pre>
       </div>
       <div>
-        <p style="margin-bottom: 2px;"><strong>Frontend: Vitest Suite (11 lolos, 0 gagal)</strong></p>
+        <p style="margin-bottom: 2px;"><strong>Frontend: Vitest Suite (24 lolos, 9 suites)</strong></p>
         <pre><code>$ npm test
- <span class="term-green">✓</span> src/test/ComparisonTable.test.tsx (2 tests)
- <span class="term-green">✓</span> src/test/SkillPortfolioCard.test.tsx (4 tests)
- <span class="term-green">✓</span> src/test/AssessmentListPage.test.tsx (2 tests)
- <span class="term-green">✓</span> src/test/PrivacyConsentModal.test.tsx (3 tests)
+ <span class="term-green">✓</span> SkillRadarChart.test.tsx (2 tests)
+ <span class="term-green">✓</span> SkillPortfolioCard.test.tsx (4 tests)
+ <span class="term-green">✓</span> PrivacyConsentModal.test.tsx (3 tests)
+ <span class="term-green">✓</span> AssessmentListPage.test.tsx (2 tests)
+ <span class="term-green">✓</span> InterviewAutoScroll.test.tsx (1 test)
+ <span class="term-green">✓</span> OverridePanel.test.tsx (3 tests)
+ <span class="term-green">✓</span> ComparisonTable.test.tsx (2 tests)
+ <span class="term-green">✓</span> useWakeLock.test.ts (4 tests)
+ <span class="term-green">✓</span> HardwareCheckMicCleanup.test.tsx (3 tests)
 
-<span class="term-green">Test Files  4 passed (4) | Tests 11 passed (11)</span></code></pre>
+<span class="term-green">Test Files  9 passed (9) | Tests 24 passed (24)</span></code></pre>
       </div>
     </div>
 
@@ -865,29 +914,32 @@ Finished in 0.18723 seconds
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Standar Monozukuri</div>
       <div>Penulis: Wisman Nur &bull; Oktober 2026</div>
-      <div>Halaman 4 dari 5</div>
+      <div>Bagian 4 &bull; Implementasi &amp; Bukti Ketelitian</div>
     </div>
 
     <!-- ==================== PAGE 5 ==================== -->
     <div class="page-break"></div>
 
-    <h2><span class="section-num">5</span> AI Verification Moment (Pengawasan Kritis Senior Staff)</h2>
+    <h2><span class="section-num">5</span> AI Verification Moments (Pengawasan Kritis Senior Staff)</h2>
     <div class="callout callout-p0">
-      <strong>Usulan AI yang Cacat:</strong>
-      <p style="margin: 2px 0 0 0;">Ketika diminta menyelesaikan masalah P0-1, asisten AI mengusulkan untuk menyimpan <em>override</em> dalam array in-memory, memanggil <code>portfolio.portfolio_skills.destroy_all</code>, lalu memanggil <code>override.update!(portfolio_skill: new_skill)</code>.</p>
+      <strong>Kasus 1: Perangkap Cascading Deletion ActiveRecord:</strong>
+      <p style="margin: 2px 0 0 0;">Asisten AI mengusulkan untuk menyimpan <em>override</em> dalam array in-memory, memanggil <code>portfolio.portfolio_skills.destroy_all</code>, lalu memanggil <code>override.update!(portfolio_skill: new_skill)</code>.</p>
     </div>
-    <p><strong>Kritik &amp; Diagnosis Senior Staff:</strong></p>
-    <ol style="margin: 2px 0 8px 0; padding-left: 18px;">
-      <li><strong>Perangkap Penghapusan Berjenjang ActiveRecord:</strong> Pada <code>PortfolioSkill</code>, relasi dideklarasikan sebagai <code>has_one :assessor_override, dependent: :destroy</code>. Pemanggilan <code>destroy_all</code> mengeksekusi kueri SQL <code>DELETE</code> langsung pada record <em>override</em> anak. Array in-memory menyimpan record yang telah hancur dan dibekukan (<em>frozen</em>); pemanggilan <code>update!</code> berikutnya memicu <code>ActiveRecord::RecordNotFound</code> atau gagal tanpa suara.</li>
-      <li><strong>Ketiadaan Batas Transaksi:</strong> Usulan AI tidak memiliki <code>ActiveRecord::Base.transaction</code>. Kegagalan jaringan atau parsing di tengah jalan akan menyebabkan seluruh skill kandidat terhapus secara permanen.</li>
-      <li><strong>Solusi Staff Engineer:</strong> Mengekstrak atribut <em>override</em> ke dalam <em>value-object</em> Hash Ruby terpisah, mengeksekusi penghapusan dalam transaksi atomik, dan merekonstruksi record dengan timestamp serta catatan asesor yang tetap utuh.</li>
+    <ol style="margin: 2px 0 6px 0; padding-left: 18px;">
+      <li><strong>Perangkap Relasional Berjenjang:</strong> Pada <code>PortfolioSkill</code>, <code>has_one :assessor_override, dependent: :destroy</code> menyebabkan PostgreSQL mengeksekusi <code>DELETE</code> SQL langsung pada record anak. Array in-memory menyimpan record yang telah hancur dan dibekukan; <code>update!</code> berikutnya gagal.</li>
+      <li><strong>Resolusi Staff Engineer:</strong> Mengekstrak atribut ke dalam <em>value-object</em> Hash Ruby terpisah di dalam transaksi atomik (<code>ActiveRecord::Base.transaction</code>), merekonstruksi record dengan timestamp dan catatan yang utuh.</li>
     </ol>
+
+    <div class="callout callout-staff" style="margin-top: 6px;">
+      <strong>Kasus 2: Perangkap Visibilitas Tab Screen Wake Lock:</strong>
+      <p style="margin: 2px 0 0 0;">Asisten AI menyarankan pemanggilan <code>navigator.wakeLock.request('screen')</code> satu kali saat mount. Standar W3C menetapkan browser otomatis melepaskan lock saat tab kehilangan visibilitas (<code>document.visibilityState === 'hidden'</code>). Jika kandidat berganti tab dan kembali, lock mati permanen. Senior staff merekayasa event listener <code>visibilitychange</code> di <code>useWakeLock.ts</code> yang otomatis me-reacquire lock saat tab kembali aktif.</p>
+    </div>
 
     <h2><span class="section-num">6</span> Panduan Naskah Video Walkthrough &amp; Pembelaan Langsung</h2>
     <p>Target durasi: 3–5 menit (Loom / YouTube unlisted):</p>
 
     <div class="script-item">
-      <div class="timestamp">[00:00 - 00:45] Pembukaan &amp; Visi Monozukuri</div>
+      <div class="timestamp">[00:00 - 00:40] Pembukaan &amp; Visi Monozukuri</div>
       <p>Perlihatkan PR GitHub <code>feat/monozukuri-interview-revamp-wismannur</code>. Perkenalkan Wisman Nur, bingkai pembahasan pada <em>craftsmanship</em> senior staff, keandalan sistem produksi, dan kepatuhan regulasi Indonesia (UU PDP No. 27/2022).</p>
       <div class="voiceover">
         "Halo tim Rakamin. Saya Wisman Nur. Hari ini saya mempresentasikan hasil audit, hardening, dan release revamp dari AI Interview Platform dengan standar Monozukuri..."
@@ -895,29 +947,35 @@ Finished in 0.18723 seconds
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[00:45 - 01:45] Akar Masalah &amp; Matriks Keparahan P0–P3</div>
-      <p>Soroti P0-1 (kehilangan <em>override</em> saat regenerasi), P0-2 (URL undangan mengarah ke port API backend), P0-3 (kerentanan JSON Gemini), dan P0-4 (kebocoran log PII).</p>
+      <div class="timestamp">[00:40 - 01:30] Akar Masalah &amp; Matriks Keparahan P0–P3</div>
+      <p>Soroti P0-1 (kehilangan <em>override</em> saat regenerasi), P0-2 (URL undangan 404), P0-3 (kerentanan JSON Gemini), P0-4 (kebocoran log PII), serta bahaya layar sleep dan lock mikrofon.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[01:45 - 03:00] Demonstrasi Solusi Nyata</div>
-      <p>Tunjukkan alur kandidat dengan <code>PrivacyConsentModal</code> UU PDP sebelum uji perangkat keras. Tunjukkan alur asesor di <code>LiveMonitorPage</code> (toggle Recent vs Semua Giliran) dan <code>ComparisonTable</code> dengan badge status yang jelas.</p>
+      <div class="timestamp">[01:30 - 02:40] Alur Kandidat: UU PDP, Hardware Cleanup, Wake Lock &amp; AiLiveOrb</div>
+      <p>Perlihatkan alur kandidat dengan <code>PrivacyConsentModal</code> UU PDP. Tunjukkan <code>HardwareCheck</code> dengan pelepasan <code>track.stop()</code> deterministik. Di sesi interview aktif, tunjukkan <code>AiLiveOrb</code>, indikator Screen Wake Lock, dan auto-scroll transkrip adaptif.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[03:00 - 04:00] Bukti Ketelitian: Test Suite &amp; Seeded Fault</div>
-      <p>Jalankan <code>bundle exec rspec</code> (24 lolos) dan <code>npm test</code> (11 lolos). Tampilkan eksekusi <em>Seeded Fault</em> yang memperlihatkan kegagalan <em>Red</em> di baris 91 dan pemulihan <em>Green</em> bersih.</p>
+      <div class="timestamp">[02:40 - 03:45] Alur Asesor: Popover Override &amp; SkillRadarChart</div>
+      <p>Tunjukkan <code>LiveMonitorPage</code> dengan toggle Recent vs All Turns. Pada Portfolio, demonstrasikan kalibrasi nilai via Radix Popover (nol pergeseran layout) dengan preservasi transaksional. Di Fit/Gap, tunjukkan <code>SkillRadarChart</code> dan status <code>⚪ Not Assessed</code>.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[04:00 - 04:45] AI Verification Moment &amp; Penutup</div>
-      <p>Bandingkan saran naif AI dengan pola <em>transactional snapshot</em>. Tarik kesimpulan bagaimana pengawasan senior staff menjembatani jurang antara kode buatan AI dan kesiapan level produksi.</p>
+      <div class="timestamp">[03:45 - 04:30] Bukti Ketelitian: Test Suite (27 RSpec, 24 Vitest) &amp; Seeded Fault</div>
+      <p>Jalankan <code>bundle exec rspec</code> (27 lolos) dan <code>npm test</code> (24 lolos di 9 suites). Tampilkan mutasi <em>Seeded Fault</em> yang memperlihatkan kegagalan <em>Red</em> di baris 91 dan pemulihan <em>Green</em> bersih.</p>
+    </div>
+
+    <div class="script-item">
+      <div class="timestamp">[04:00 - 05:00] AI Verification Moments &amp; Pembelaan Penutup</div>
+      <p>Bandingkan saran naif AI dengan mitigasi senior staff pada ActiveRecord cascade dan tab visibility wake lock. Simpulkan kesiapan sistem untuk skala enterprise produksi.</p>
     </div>
 
     <h3>Argumen Tanggapan Strategis</h3>
     <ul style="margin: 2px 0 8px 0; padding-left: 16px;">
-      <li><strong>Mengapa Opsi B lebih dipilih daripada Opsi A?</strong> Opsi A gagal secara katastropik di bawah jitter latensi seluler 4G Indonesia. Opsi B menjamin persistensi per giliran, kepastian biaya operasional ($0.25 vs $2.70/sesi), dan audit logging ketat sesuai UU PDP.</li>
-      <li><strong>Bagaimana PII dilindungi?</strong> Pertahanan dua lapis: pemfilteran parameter Rails menghentikan kebocoran pada log server, dan persetujuan eksplisit di sisi klien memblokir pengumpulan data sebelum mikrofon diakses.</li>
+      <li><strong>Mengapa Opsi B lebih dipilih daripada Opsi A?</strong> Opsi A gagal secara katastropik di bawah jitter latensi 4G Indonesia. Opsi B menjamin persistensi per giliran, penghematan OpEx 90% ($0.25 vs $2.70/sesi), dan audit logging ketat sesuai UU PDP.</li>
+      <li><strong>Mengapa Screen Wake Lock &amp; Teardown Stream Hardware?</strong> Menghindari layar mati otomatis saat interview 30–45 menit dengan auto-reacquire saat kembali ke tab. Teardown audio mencegah galat <code>NotReadableError</code> saat mic diakses kembali.</li>
+      <li><strong>Mengapa Popover Override?</strong> Portal Popover Radix menjaga stabilitas grid kartu kandidat tanpa layout shift saat form dibuka.</li>
     </ul>
 
     <h2><span class="section-num">7</span> Kesimpulan &amp; Kesiapan Produksi</h2>
@@ -928,7 +986,7 @@ Finished in 0.18723 seconds
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Standar Monozukuri</div>
       <div>Penulis: Wisman Nur &bull; Oktober 2026</div>
-      <div>Halaman 5 dari 5 &bull; Siap Produksi</div>
+      <div>Bagian 5, 6 &amp; 7 &bull; Panduan Pembelaan &amp; Siap Produksi</div>
     </div>
 
   </div>

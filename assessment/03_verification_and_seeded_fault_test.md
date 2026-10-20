@@ -8,9 +8,10 @@
 
 ## 1. Test Suite Architecture & Methodology
 
-In alignment with **Monozukuri** engineering craftsmanship, testing in this project goes beyond superficial happy-path assertions. We structured tests across two distinct boundaries:
-1. **Backend Integration & Unit Specs (`api/spec`)**: Built using RSpec, FactoryBot, and DatabaseCleaner, verifying schema invariants, multi-tenant scoping, transactional integrity, JSON schema parsing, and external API error fallbacks.
-2. **Frontend Component & Interaction Tests (`web/src/test`)**: Built with Vitest and React Testing Library, verifying user flows, conditional UI gates (UU PDP consent gating), state synchronization (all-turns transcript retention), and error boundaries.
+In alignment with **Monozukuri** engineering craftsmanship, testing in this project goes beyond superficial happy-path assertions. We structured comprehensive regression harnesses across both backend and frontend layers:
+
+1. **Backend Integration & Unit Specs (`api/spec`)**: Built using RSpec, FactoryBot, and DatabaseCleaner, verifying schema invariants, multi-tenant scoping, transactional integrity, JSON schema parsing, WebSocket resilience, and external API error fallbacks.
+2. **Frontend Component & Hook Tests (`web/src/test`)**: Built with Vitest and React Testing Library, verifying user flows, conditional UI gates (UU PDP consent gating), hardware stream lifecycle cleanup, Screen Wake Lock auto-recovery, popover ergonomics, radar chart visualization, and state synchronization.
 
 ---
 
@@ -24,14 +25,18 @@ bundle exec rspec
 
 Execution Output:
 ```text
-................2026-10-16T22:21:17.751Z pid=21887 tid=mkn INFO: Sidekiq 7.3.10 connecting to Redis with options {:size=>10, :pool_name=>"internal", :url=>"redis://localhost:6379/1"}
+WARNING: Skipping key "GEMINI_API_KEY". Already set in ENV.
+WARNING: Skipping key "GEMINI_LIVE_MODEL". Already set in ENV.
+WARNING: Skipping key "GEMINI_FLASH_MODEL". Already set in ENV.
+WARNING: Skipping key "GEMINI_PRO_MODEL". Already set in ENV.
+...................2026-10-20T13:43:15.938Z pid=43109 tid=sbh INFO: Sidekiq 7.3.10 connecting to Redis with options {:size=>10, :pool_name=>"internal", :url=>"redis://localhost:6379/1"}
 ........
 
-Finished in 0.41643 seconds (files took 0.63413 seconds to load)
-24 examples, 0 failures
+Finished in 0.45288 seconds (files took 0.92122 seconds to load)
+27 examples, 0 failures
 ```
 
-#### Coverage Matrix:
+#### Coverage Matrix (27 Examples):
 - `spec/models/session_spec.rb`:
   - Enforces valid status transitions (`pending` -> `active` -> `ended`).
   - Verifies invite URL generation targeting candidate frontend port (5173).
@@ -54,6 +59,9 @@ Finished in 0.41643 seconds (files took 0.63413 seconds to load)
 - `spec/requests/api/v1/assessments_spec.rb`:
   - Verifies paginated listing response schema (`assessments` and `meta`).
   - Returns 422 Unprocessable Entity when attempting to delete assessment with active sessions.
+- `spec/channels/audio_websocket_middleware_spec.rb`:
+  - Handles WebSocket closure code 1008 (Policy Violation) and 1006 (Abnormal Closure) with graceful conversational fallback.
+  - Enforces prompt injection defense and boundary delimiters in AI interviewer system instructions.
 
 ---
 
@@ -70,39 +78,63 @@ Execution Output:
 
  RUN  v5.0.5 /Users/wismannur/Documents/coding-test/rakamin/web
 
- ✓ src/test/ComparisonTable.test.tsx (2 tests) 38ms
- ✓ src/test/SkillPortfolioCard.test.tsx (4 tests) 39ms
- ✓ src/test/AssessmentListPage.test.tsx (2 tests) 124ms
- ✓ src/test/PrivacyConsentModal.test.tsx (3 tests) 138ms
+ ✓ src/test/SkillRadarChart.test.tsx (2 tests) 69ms
+ ✓ src/test/SkillPortfolioCard.test.tsx (4 tests) 77ms
+ ✓ src/test/PrivacyConsentModal.test.tsx (3 tests) 241ms
+ ✓ src/test/AssessmentListPage.test.tsx (2 tests) 270ms
+ ✓ src/test/InterviewAutoScroll.test.tsx (1 test) 202ms
+ ✓ src/test/OverridePanel.test.tsx (3 tests) 419ms
+ ✓ src/test/ComparisonTable.test.tsx (2 tests) 34ms
+ ✓ src/test/useWakeLock.test.ts (4 tests) 12ms
+ ✓ src/test/HardwareCheckMicCleanup.test.tsx (3 tests) 1689ms
 
- Test Files  4 passed (4)
-      Tests  11 passed (11)
-   Start at  05:22:33
-   Duration  961ms
+ Test Files  9 passed (9)
+      Tests  24 passed (24)
+   Start at  20:43:08
+   Duration  2.90s
 ```
 
-#### Coverage Matrix:
-- `PrivacyConsentModal.test.tsx`:
-  - Displays UU PDP No. 27/2022 compliance badges and legal notices.
-  - Disables continuation until the user explicitly checks the agreement.
-  - Toggles detailed privacy retention disclosure.
-- `AssessmentListPage.test.tsx`:
-  - Renders multi-page pagination controls (Next/Prev, page count).
-  - Handles API deletion failure gracefully with an in-page error alert banner when blocked by existing sessions.
-- `ComparisonTable.test.tsx`:
-  - Correctly maps delta values, exceed stars, and gap alerts.
-  - Highlights human assessor overrides with edit pencils.
-  - Renders unassessed skills (`not_assessed`) distinctly.
-- `SkillPortfolioCard.test.tsx`:
-  - Prioritizes Assessor Override level over raw AI score.
-  - Displays `Discovered` badge for dynamically surfaced competencies.
-  - Renders warning banner when AI confidence is low.
+#### Coverage Matrix (24 Tests across 9 Suites):
+1. `PrivacyConsentModal.test.tsx` (3 tests):
+   - Displays UU PDP No. 27/2022 statutory compliance badges and notices.
+   - Gating mechanism: Disables continuation until the user explicitly checks consent.
+   - Toggles detailed privacy retention and security disclosures.
+2. `AssessmentListPage.test.tsx` (2 tests):
+   - Renders multi-page pagination controls (Next/Prev, page count).
+   - Handles API deletion failure gracefully with an in-page error alert banner when blocked by existing sessions.
+3. `ComparisonTable.test.tsx` (2 tests):
+   - Correctly maps delta values, exceed stars, and gap alerts.
+   - Highlights human assessor overrides with edit pencils.
+   - Renders unassessed skills (`⚪ Not Assessed`) distinctly.
+4. `SkillPortfolioCard.test.tsx` (4 tests):
+   - Prioritizes Assessor Override level over raw AI score.
+   - Displays `Discovered` badge for dynamically surfaced competencies.
+   - Renders warning banner when AI confidence is low.
+5. `SkillRadarChart.test.tsx` (2 tests):
+   - Renders multi-axis SVG radar chart comparing candidate vs vacancy benchmark levels.
+   - Handles empty/unassessed skill datasets gracefully.
+6. `OverridePanel.test.tsx` (3 tests):
+   - Renders within an accessible Popover portal without breaking card grid layout.
+   - Updates override level and assessor justification notes.
+   - Triggers optimistic UI feedback and dismisses popover on submission.
+7. `useWakeLock.test.ts` (4 tests):
+   - Requests screen wake lock sentinel on active interview mount.
+   - Automatically re-acquires lock when tab regains focus (`visibilitychange` event).
+   - Releases wake lock cleanly on unmount.
+   - Degrades gracefully on unsupported platforms.
+8. `HardwareCheckMicCleanup.test.tsx` (3 tests):
+   - Explicitly invokes `track.stop()` on all audio tracks when `HardwareCheck` unmounts.
+   - Stops microphone stream when clicking "Mulai Interview", releasing audio hardware.
+   - Prevents `NotReadableError` / device busy collisions on subsequent audio capture.
+9. `InterviewAutoScroll.test.tsx` (1 test):
+   - Auto-scrolls to newest turn when fresh transcript turns arrive.
+   - Pauses auto-scroll when user manually scrolls up to inspect previous turns (sticky scroll preservation).
 
 ---
 
-## 3. Seeded Fault Test: Proof of Rigor
+## 3. Seeded Fault Test: Proof of Suite Integrity
 
-To prove that our automated tests are genuine regression guards and not vacuous "happy-path pass-throughs", we conducted a **Seeded Fault Test** on our critical P0-1 fix: **Assessor Override Retention**.
+To prove that our automated tests are genuine regression guards and not vacuous pass-throughs, we conducted a **Seeded Fault Test** on our critical P0-1 fix: **Assessor Override Retention**.
 
 ### 3.1 The Seeded Mutation
 In `api/app/services/portfolios/generator.rb`, we introduced an intentional early return in `reapply_override_if_present`, simulating a regression where an engineer inadvertently disconnects the override restoration pipeline:
@@ -137,7 +169,7 @@ Failed examples:
 rspec ./spec/services/portfolios/generator_spec.rb:66 # Portfolios::Generator#call preserves human assessor overrides across portfolio regenerations (P0-1 fix)
 ```
 
-**Observation**: The test suite immediately and unambiguously pinpointed the fault at line 91, preventing silent data loss in production.
+**Observation**: The test suite immediately and unambiguously pinpointed the fault at line 91, proving that our test harness prevents silent regression of human assessor calibrations in production.
 
 ### 3.3 The Green State (Reversion & Resolution)
 Removing the seeded fault restored the spec to 100% pass:
@@ -149,4 +181,4 @@ Finished in 0.18723 seconds (files took 0.65895 seconds to load)
 3 examples, 0 failures
 ```
 
-This establishes an immutable verification trail proving test integrity.
+This establishes an immutable verification trail proving suite reliability and Monozukuri engineering rigor.

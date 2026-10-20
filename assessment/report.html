@@ -480,7 +480,7 @@
       <div class="badge-bar">
         <span class="badge badge-primary">Technical Case Study Report</span>
         <span class="badge badge-monozukuri">Monozukuri Craftsmanship</span>
-        <span class="badge badge-verified">Tests: 100% Pass (35/35)</span>
+        <span class="badge badge-verified">Tests: 100% Pass (51/51)</span>
         <span class="badge badge-compliance">UU PDP No. 27/2022 Compliant</span>
       </div>
       <h1>AI Interview Platform: Product & Engineering Hardening Report</h1>
@@ -494,7 +494,7 @@
 
     <h2><span class="section-num">0</span> Executive Summary</h2>
     <p>
-      This report details the architectural audit, critical defect remediation, and release engineering for the <strong>AI Interview Platform</strong> (Rails API backend + React 18 TypeScript frontend). Operating under the ethos of <strong>Monozukuri</strong> (technological rigor, deep craft, and operational excellence), we eliminated silent data-loss traps, resolved national privacy compliance liabilities under Indonesia's <strong>UU PDP No. 27/2022</strong>, and instituted an immutable automated testing harness with 100% pass rates.
+      This report details the architectural audit, critical defect remediation, and release engineering for the <strong>AI Interview Platform</strong> (Rails API backend + React 18 TypeScript frontend). Operating under the ethos of <strong>Monozukuri</strong> (technological rigor, deep craft, and operational excellence), we eliminated silent data-loss traps, resolved national privacy compliance liabilities under Indonesia's <strong>UU PDP No. 27/2022</strong>, eliminated real-world browser hardware locks, and instituted an immutable automated testing harness with 100% pass rates.
     </p>
 
     <div class="kpi-deck">
@@ -503,7 +503,7 @@
         <div class="kpi-label">P0 Flaws Eliminated</div>
       </div>
       <div class="kpi-card kpi-emerald">
-        <div class="kpi-value">35 / 35</div>
+        <div class="kpi-value">51 / 51</div>
         <div class="kpi-label">Specs Passing (100%)</div>
       </div>
       <div class="kpi-card kpi-amber">
@@ -523,7 +523,9 @@
         <li><strong>Flawless Candidate Routing (P0-2)</strong>: Resolved 404 invite URL routing by aligning hosts with the frontend port (<code>5173</code>).</li>
         <li><strong>Hardened AI Client (P0-3)</strong>: Gemini HTTP client fortified with strict JSON MIME type negotiation (<code>application/json</code>) and regex markdown fence sanitization.</li>
         <li><strong>UU PDP Compliance (P0-4 &amp; P1-2)</strong>: Rails parameter filter blocks PII in logs; React consent modal gates microphone hardware acquisition.</li>
-        <li><strong>Defensive Testing Rigor</strong>: Engineered 24 RSpec specs + 11 Vitest specs, proving test sensitivity through an intentional mutation Seeded Fault test (Red caught at line 91, restored to clean Green).</li>
+        <li><strong>Hardware &amp; Operational Reliability (P1-5, P1-6, P2-4)</strong>: Solved microphone stream locks via deterministic track teardown, hardened WebSocket against 1008/1006 closures with conversational fallbacks, and deployed Screen Wake Lock API with tab visibility auto-recovery.</li>
+        <li><strong>Assessor &amp; Candidate Ergonomics (P2-5, P3-1, P3-2)</strong>: Encapsulated rating overrides in Radix Popover portals (zero layout shifts), built multi-axis <code>SkillRadarChart</code>, and deployed <code>AiLiveOrb</code> real-time audio visualizer.</li>
+        <li><strong>Defensive Testing Rigor</strong>: Engineered 27 RSpec specs + 24 Vitest specs in 9 suites, proving test sensitivity through an intentional mutation Seeded Fault test (Red caught at line 91, restored to clean Green).</li>
       </ul>
     </div>
 
@@ -555,7 +557,7 @@
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Monozukuri Standard</div>
       <div>Author: Wisman Nur &bull; October 2026</div>
-      <div>Page 1 of 5</div>
+      <div>Section 0 &amp; 1 &bull; Context &amp; Legal Mandate</div>
     </div>
 
     <!-- ==================== PAGE 2 ==================== -->
@@ -631,7 +633,21 @@
           <td><span class="sev-tag sev-p1">P1</span></td>
           <td>Zero automated test suites existed in both <code>api/</code> and <code>web/</code>.</td>
           <td><strong>High Regression Debt:</strong> High risk of silent regressions on every subsequent pull request.</td>
-          <td><strong style="color: #16a34a;">RESOLVED:</strong> 24 RSpec specs + 11 Vitest specs added (100% pass).</td>
+          <td><strong style="color: #16a34a;">RESOLVED:</strong> 27 RSpec specs + 24 Vitest specs added (100% pass).</td>
+        </tr>
+        <tr>
+          <td><strong>P1-5</strong></td>
+          <td><span class="sev-tag sev-p1">P1</span></td>
+          <td><code>HardwareCheck.tsx</code> unreleased microphone audio tracks on step transition.</td>
+          <td><strong>Hardware Lock:</strong> Browser holds mic hostage, causing <code>NotReadableError</code> in live interview AudioWorklet.</td>
+          <td><strong style="color: #16a34a;">RESOLVED:</strong> Explicit <code>track.stop()</code> teardown on unmount &amp; start.</td>
+        </tr>
+        <tr>
+          <td><strong>P1-6</strong></td>
+          <td><span class="sev-tag sev-p1">P1</span></td>
+          <td><code>AudioWebsocketMiddleware</code> aborted sessions on Gemini Live 1008/1006 closures.</td>
+          <td><strong>Session Disruption:</strong> Policy violations or network blips dropped live candidate interviews abruptly.</td>
+          <td><strong style="color: #16a34a;">RESOLVED:</strong> Reconnect state machine &amp; anti-jailbreak prompt protection.</td>
         </tr>
         <tr>
           <td><strong>P2-1</strong></td>
@@ -654,17 +670,31 @@
           <td><strong>Visual Confusion:</strong> Rendered blank dashes without explaining "Not Assessed".</td>
           <td><strong style="color: #16a34a;">RESOLVED:</strong> Distinct <code>⚪ Not Assessed</code> badge &amp; counter added.</td>
         </tr>
+        <tr>
+          <td><strong>P2-4</strong></td>
+          <td><span class="sev-tag sev-p2">P2</span></td>
+          <td>Device screen sleeps / dims during 30–45m candidate speaking sessions.</td>
+          <td><strong>Interview Interruption:</strong> Screen sleep halts WebSocket audio streaming and drops session.</td>
+          <td><strong style="color: #16a34a;">RESOLVED:</strong> Implemented Screen Wake Lock API with tab visibility auto-recovery.</td>
+        </tr>
+        <tr>
+          <td><strong>P2-5</strong></td>
+          <td><span class="sev-tag sev-p2">P2</span></td>
+          <td>Inline rating override panel in candidate cards caused severe layout shifts.</td>
+          <td><strong>Ergonomic Flaw:</strong> Expanding editor jumped card heights and misaligned adjacent cards.</td>
+          <td><strong style="color: #16a34a;">RESOLVED:</strong> Encapsulated override workflow in a Radix Popover portal.</td>
+        </tr>
       </tbody>
     </table>
 
     <div class="callout callout-staff">
-      <strong>Engineering Severity Governance:</strong> Under our Monozukuri release standard, no PR can merge with outstanding P0 (system-blocking/data-loss) or P1 (compliance/integrity) defects. All 8 P0 and P1 issues have been resolved, defensively verified, and hardened with automated regression specs.
+      <strong>Engineering Severity Governance:</strong> Under our Monozukuri release standard, no PR can merge with outstanding P0 (system-blocking/data-loss) or P1 (compliance/integrity) defects. All P0, P1, and P2 issues have been resolved, defensively verified, and hardened with automated regression specs.
     </div>
 
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Monozukuri Standard</div>
       <div>Author: Wisman Nur &bull; October 2026</div>
-      <div>Page 2 of 5</div>
+      <div>Section 2 &bull; Severity-Ranked Gap Analysis</div>
     </div>
 
     <!-- ==================== PAGE 3 ==================== -->
@@ -744,7 +774,7 @@
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Monozukuri Standard</div>
       <div>Author: Wisman Nur &bull; October 2026</div>
-      <div>Page 3 of 5</div>
+      <div>Section 3 &bull; Architectural Trade-offs</div>
     </div>
 
     <!-- ==================== PAGE 4 ==================== -->
@@ -788,27 +818,46 @@ end</code></pre>
   :invite_token, :candidate_name, :audio_data, :audio_chunk, :transcript_text
 ]</code></pre>
 
+    <div class="code-label">3. Screen Wake Lock Lifecycle with Tab Visibility Auto-Recovery (web/src/hooks/useWakeLock.ts)</div>
+    <pre><code>useEffect(() => {
+  if (!active || !isSupported) return;
+  requestWakeLock();
+  const handleVisibilityChange = () => {
+    if (document.visibilityState === 'visible' && active) requestWakeLock();
+  };
+  document.addEventListener('visibilitychange', handleVisibilityChange);
+  return () => {
+    document.removeEventListener('visibilitychange', handleVisibilityChange);
+    releaseWakeLock();
+  };
+}, [active, isSupported, requestWakeLock, releaseWakeLock]);</code></pre>
+
     <h3>4.2 Automated Test Execution Proof</h3>
     
     <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
       <div>
-        <p style="margin-bottom: 2px;"><strong>Backend: RSpec Suite (24 passed, 0 failures)</strong></p>
+        <p style="margin-bottom: 2px;"><strong>Backend: RSpec Suite (27 passed, 0 failures)</strong></p>
         <pre><code>$ bundle exec rspec
-................<span class="term-dim">2026-10-16T22:21:17Z INFO: Sidekiq</span>
-........
+<span class="term-dim">...................INFO: Sidekiq connecting to Redis
+........</span>
 
-Finished in 0.41643 seconds
-<span class="term-green">24 examples, 0 failures</span></code></pre>
+Finished in 0.45288 seconds
+<span class="term-green">27 examples, 0 failures</span></code></pre>
       </div>
       <div>
-        <p style="margin-bottom: 2px;"><strong>Frontend: Vitest Suite (11 passed, 0 failures)</strong></p>
+        <p style="margin-bottom: 2px;"><strong>Frontend: Vitest Suite (24 passed, 9 suites)</strong></p>
         <pre><code>$ npm test
- <span class="term-green">✓</span> src/test/ComparisonTable.test.tsx (2 tests)
- <span class="term-green">✓</span> src/test/SkillPortfolioCard.test.tsx (4 tests)
- <span class="term-green">✓</span> src/test/AssessmentListPage.test.tsx (2 tests)
- <span class="term-green">✓</span> src/test/PrivacyConsentModal.test.tsx (3 tests)
+ <span class="term-green">✓</span> SkillRadarChart.test.tsx (2 tests)
+ <span class="term-green">✓</span> SkillPortfolioCard.test.tsx (4 tests)
+ <span class="term-green">✓</span> PrivacyConsentModal.test.tsx (3 tests)
+ <span class="term-green">✓</span> AssessmentListPage.test.tsx (2 tests)
+ <span class="term-green">✓</span> InterviewAutoScroll.test.tsx (1 test)
+ <span class="term-green">✓</span> OverridePanel.test.tsx (3 tests)
+ <span class="term-green">✓</span> ComparisonTable.test.tsx (2 tests)
+ <span class="term-green">✓</span> useWakeLock.test.ts (4 tests)
+ <span class="term-green">✓</span> HardwareCheckMicCleanup.test.tsx (3 tests)
 
-<span class="term-green">Test Files  4 passed (4) | Tests 11 passed (11)</span></code></pre>
+<span class="term-green">Test Files  9 passed (9) | Tests 24 passed (24)</span></code></pre>
       </div>
     </div>
 
@@ -846,29 +895,32 @@ Finished in 0.18723 seconds
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Monozukuri Standard</div>
       <div>Author: Wisman Nur &bull; October 2026</div>
-      <div>Page 4 of 5</div>
+      <div>Section 4 &bull; Implementation &amp; Rigor</div>
     </div>
 
     <!-- ==================== PAGE 5 ==================== -->
     <div class="page-break"></div>
 
-    <h2><span class="section-num">5</span> AI Verification Moment (Senior Staff Critical Oversight)</h2>
+    <h2><span class="section-num">5</span> AI Verification Moments (Senior Staff Critical Oversight)</h2>
     <div class="callout callout-p0">
-      <strong>The Flawed AI Proposal:</strong>
-      <p style="margin: 2px 0 0 0;">When tasked with resolving P0-1, an AI assistant suggested saving overrides in an in-memory array, calling <code>portfolio.portfolio_skills.destroy_all</code>, and later calling <code>override.update!(portfolio_skill: new_skill)</code>.</p>
+      <strong>Case 1: ActiveRecord Cascading Deletion Trap:</strong>
+      <p style="margin: 2px 0 0 0;">An AI assistant suggested saving overrides in an in-memory array, calling <code>portfolio.portfolio_skills.destroy_all</code>, and later calling <code>override.update!(portfolio_skill: new_skill)</code>.</p>
     </div>
-    <p><strong>The Senior Staff Critique &amp; Diagnosis:</strong></p>
-    <ol style="margin: 2px 0 8px 0; padding-left: 18px;">
-      <li><strong>ActiveRecord Cascading Deletion Trap:</strong> In <code>PortfolioSkill</code>, the relation is declared as <code>has_one :assessor_override, dependent: :destroy</code>. Calling <code>destroy_all</code> executed immediate SQL <code>DELETE</code> queries on child overrides. The in-memory array held frozen, destroyed records; subsequent <code>update!</code> calls raised <code>ActiveRecord::RecordNotFound</code> or failed silently.</li>
-      <li><strong>Missing Transaction Boundary:</strong> The AI proposal lacked <code>ActiveRecord::Base.transaction</code>. Any network or parsing failure halfway through left candidate skills permanently wiped.</li>
-      <li><strong>The Staff Engineer Fix:</strong> Extracted override attributes into detached ruby Hash value objects, executed destruction within an atomic transaction, and recreated records with preserved timestamps and notes.</li>
+    <ol style="margin: 2px 0 6px 0; padding-left: 18px;">
+      <li><strong>The Relational Cascade Trap:</strong> In <code>PortfolioSkill</code>, <code>has_one :assessor_override, dependent: :destroy</code> caused PostgreSQL to execute immediate SQL <code>DELETE</code> on overrides upon parent destruction. The in-memory array held frozen, destroyed records; subsequent <code>update!</code> failed.</li>
+      <li><strong>Staff Engineer Resolution:</strong> Extracted override attributes into detached ruby Hash value objects inside an atomic database transaction (<code>ActiveRecord::Base.transaction</code>), recreating records with preserved timestamps and notes.</li>
     </ol>
+
+    <div class="callout callout-staff" style="margin-top: 6px;">
+      <strong>Case 2: Screen Wake Lock Tab Visibility Trap:</strong>
+      <p style="margin: 2px 0 0 0;">An AI assistant suggested calling <code>navigator.wakeLock.request('screen')</code> once on mount. The W3C specification dictates that browsers automatically release wake locks when a tab loses visibility (<code>document.visibilityState === 'hidden'</code>). If a candidate switched tabs and returned, the lock was dead. Senior staff engineered an active <code>visibilitychange</code> event listener in <code>useWakeLock.ts</code> that automatically re-acquires the lock sentinel upon return.</p>
+    </div>
 
     <h2><span class="section-num">6</span> Video Walkthrough Script &amp; Live Defense Guide</h2>
     <p>Target duration: 3–5 minutes (Loom / YouTube unlisted):</p>
 
     <div class="script-item">
-      <div class="timestamp">[00:00 - 00:45] Introduction &amp; Monozukuri Vision</div>
+      <div class="timestamp">[00:00 - 00:40] Introduction &amp; Monozukuri Vision</div>
       <p>Show GitHub PR <code>feat/monozukuri-interview-revamp-wismannur</code>. Introduce Wisman Nur, framing the work around senior staff craftsmanship, system reliability, and Indonesian regulatory compliance (UU PDP No. 27/2022).</p>
       <div class="voiceover">
         "Halo tim Rakamin. Saya Wisman Nur. Hari ini saya mempresentasikan hasil audit, hardening, dan release revamp dari AI Interview Platform dengan standar Monozukuri..."
@@ -876,29 +928,35 @@ Finished in 0.18723 seconds
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[00:45 - 01:45] Root Causes &amp; The P0–P3 Severity Matrix</div>
-      <p>Highlight P0-1 (override loss during regeneration), P0-2 (invite URL pointing to backend API port), P0-3 (Gemini JSON fragility), and P0-4 (PII log leaks).</p>
+      <div class="timestamp">[00:40 - 01:30] Root Causes &amp; The P0–P3 Severity Matrix</div>
+      <p>Highlight P0-1 (override loss during regeneration), P0-2 (invite URL routing bug), P0-3 (Gemini JSON fragility), P0-4 (PII log leaks), and real-world hardware lock / screen sleep hazards.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[01:45 - 03:00] Live Solution Showcase</div>
-      <p>Demonstrate the candidate journey with the UU PDP <code>PrivacyConsentModal</code> before hardware check. Show the assessor journey in <code>LiveMonitorPage</code> (Recent vs All Turns toggle) and <code>ComparisonTable</code> with clean unassessed badges.</p>
+      <div class="timestamp">[01:30 - 02:40] Candidate Flow: UU PDP, Hardware Cleanup, Wake Lock &amp; AiLiveOrb</div>
+      <p>Demonstrate candidate journey with the UU PDP <code>PrivacyConsentModal</code>. Show <code>HardwareCheck</code> with deterministic <code>track.stop()</code> teardown. In live interview, demonstrate <code>AiLiveOrb</code>, Screen Wake Lock indicator, and sticky auto-scroll transcript.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[03:00 - 04:00] Proof of Rigor: Test Suites &amp; Seeded Fault</div>
-      <p>Run <code>bundle exec rspec</code> (24 passed) and <code>npm test</code> (11 passed). Present the Seeded Fault execution showing the Red failure at line 91 and the clean Green restoration.</p>
+      <div class="timestamp">[02:40 - 03:45] Assessor Flow: Popover Override &amp; SkillRadarChart</div>
+      <p>Show <code>LiveMonitorPage</code> with Recent vs All Turns toggle. In Portfolio, demonstrate Popover rating overrides (zero layout shift) with transactional preservation. In Fit/Gap, show interactive <code>SkillRadarChart</code> and <code>⚪ Not Assessed</code> status.</p>
     </div>
 
     <div class="script-item">
-      <div class="timestamp">[04:00 - 04:45] AI Verification Moment &amp; Closing Defense</div>
-      <p>Contrast the naive AI suggestion with the transactional snapshot pattern. Conclude on how senior staff oversight bridges the gap between AI generation and production readiness.</p>
+      <div class="timestamp">[03:45 - 04:30] Proof of Rigor: Test Suite (27 RSpec, 24 Vitest) &amp; Seeded Fault</div>
+      <p>Run <code>bundle exec rspec</code> (27 passed) and <code>npm test</code> (24 passed in 9 files). Present Seeded Fault execution showing the Red failure at line 91 and clean Green restoration.</p>
+    </div>
+
+    <div class="script-item">
+      <div class="timestamp">[04:30 - 05:00] AI Verification Moments &amp; Closing Defense</div>
+      <p>Explain senior staff critical oversight on ActiveRecord cascading delete and Screen Wake Lock tab visibility. Conclude on production readiness.</p>
     </div>
 
     <h3>Strategic Pushback Defenses</h3>
     <ul style="margin: 2px 0 8px 0; padding-left: 16px;">
-      <li><strong>Why Option B over Option A?</strong> Option A fails catastrophically under typical Indonesian 4G cellular latency jitter. Option B guarantees turn persistence, cost predictability ($0.25 vs $2.70/session), and strict UU PDP audit logging.</li>
-      <li><strong>How is PII protected?</strong> Two-stage defense: Rails parameter filtering stops server log leakage, and client-side explicit consent blocks unconsented data collection before microphone acquisition.</li>
+      <li><strong>Why Option B over Option A?</strong> Option A fails catastrophically under typical Indonesian 4G cellular latency jitter. Option B guarantees turn persistence, 90% OpEx savings ($0.25 vs $2.70/session), and strict UU PDP audit logging.</li>
+      <li><strong>Why Screen Wake Lock &amp; Hardware stream teardown?</strong> Screen Wake Lock prevents mobile/laptop display timeout during 30–45m sessions, with auto-recovery on tab switch. Hardware stream teardown prevents <code>NotReadableError</code> mic locks.</li>
+      <li><strong>Why Popover Override?</strong> Radix Popover portals maintain candidate card grid geometry with zero layout shifts.</li>
     </ul>
 
     <h2><span class="section-num">7</span> Conclusion &amp; Production Readiness</h2>
@@ -909,7 +967,7 @@ Finished in 0.18723 seconds
     <div class="doc-footer">
       <div>AI Interview Platform Hardening Report &bull; Monozukuri Standard</div>
       <div>Author: Wisman Nur &bull; October 2026</div>
-      <div>Page 5 of 5 &bull; Production Ready</div>
+      <div>Section 5, 6 &amp; 7 &bull; Defense Guide &amp; Production Ready</div>
     </div>
 
   </div>
